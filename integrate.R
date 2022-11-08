@@ -31,6 +31,7 @@
     
     # call to core packages for data manipulation
     library(dplyr)
+    library(plyr)
     library(tidyr)
     library(magrittr)      
     library(purrr)
