@@ -175,6 +175,133 @@
             summary(lm(fish_density ~ Fresh_Dist, data = fishsummary))              
         
     
+## 4. NMDS (species level) ----
+            
+    # set up data        
+    vegan_fishNMDS_data = 
+        merge(fishsummary %>%
+                dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)),
+                fishNMDSdata) 
+            
+    # conduct NMDS 
+    fishNMDS_object = metaMDS(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)], 
+                              k = 2,
+                              distance = "bray", 
+                              trymax = 100)
+            
+    # examine stressplot & baseplot
+    stressplot(fishNMDS_object)
+    plot(fishNMDS_object)
+            
+    # create parsed down grouping dataframe and add row_ID column
+    reference_fishNMDS = 
+        vegan_fishNMDS_data %>%
+            dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)) %>%
+            ungroup() %>%
+            dplyr::mutate(row_ID = row_number())
+            
+    # extract data for plotting
+    plotting_fishNMDS = 
+        scores(fishNMDS_object, display = "sites") %>% 
+        as.data.frame() %>% 
+        rownames_to_column("row_ID")
+            
+    plotting_fishNMDS = merge(reference_fishNMDS, plotting_fishNMDS)
+            
+    # fit environmental and species vectors
+    fishNMDS_envfit =
+        envfit(fishNMDS_object, 
+               reference_fishNMDS, 
+               permutations = 999,
+               na.rm = TRUE) # this fits environmental vectors
+    
+    fishNMDS_speciesfit =
+        envfit(fishNMDS_object, 
+               vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)], 
+               permutations = 999,
+               na.rm = T) # this fits species vectors      
+    
+    # which species contribute to differences in NMDS plots?
+    fish_species_scores =
+        as.data.frame(scores(fishNMDS_speciesfit,
+                             display = "vectors"))                                      #save species intrinsic values into dataframe
+    
+    fish_species_scores = cbind(fish_species_scores, 
+                                 Species = rownames(fish_species_scores))        #add species names to dataframe
+    
+    fish_species_scores = cbind(fish_species_scores,
+                                 pval = fishNMDS_speciesfit$vectors$pvals)      #add pvalues to dataframe so you can select species which are significant
+    
+    
+    fish_species_scores = cbind(fish_species_scores,
+                                 abrev = abbreviate(fish_species_scores$Species,
+                                                    minlength = 4, 
+                                                    method = "both"))                #abbreviate species names
+    
+    significant_fish_species_scores = subset(fish_species_scores,
+                                              pval <= 0.05)                          #subset data to show species significant at 0.05
+    
+    # which environmental factors contribute to differences in NMDS plots?
+    fish_env_scores =
+        as.data.frame(scores(fishNMDS_envfit,
+                             display = "vectors"))                        # save species intrinsic values into dataframe
+    
+    fish_env_scores = cbind(fish_env_scores, 
+                             Species = rownames(fish_env_scores))        # add species names to dataframe
+    
+    fish_env_scores = cbind(fish_env_scores,
+                             pval = fishNMDS_envfit$vectors$pvals)       # add pvalues to dataframe so you can select species which are significant
+    
+    
+    # current_env_scores = cbind(current_env_scores,
+    #                                abrev = abbreviate(current_env_scores$Species,
+    #                                                   minlength = 4, 
+    #                                                   method = "both"))                #abbreviate environmental factor names
+    
+    significant_fish_env_scores = subset(fish_env_scores,
+                                          pval <= 0.05)     #subset data to show environmental factors significant at 0.05
+    
+    
+## 5. PERMANOVA of NMDS (species level) ----
+    
+    # difference in fish community based on unit? 
+    
+        # site assumption: do groups have homogeneous variances? 
+        dis = vegdist(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)], method="bray")
+        mod = betadisper(dis, reference_fishNMDS$Unit)
+        anova(mod)      # p<0.05, violated ... but proceeding anyways
+        plot(mod)
+    
+    adonis2(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)] ~ Unit, 
+            data = reference_fishNMDS, 
+            permutations = 9999,
+            method = "bray")                     # difference in community based on UNIT
+    
+    # difference in fish community based on substrate characterization? 
+    
+        # site assumption: do groups have homogeneous variances? 
+        dis = vegdist(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)], method="bray")
+        mod = betadisper(dis, reference_fishNMDS$Substrate_Characterization)
+        anova(mod)      # p<0.05, violated ... but proceeding anyways
+        plot(mod)
+    
+    adonis2(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)] ~ Substrate_Characterization, 
+            data = reference_fishNMDS, 
+            permutations = 9999,
+            method = "bray")                     # difference in community based on SUBSTRATE CHARACTERIZATION
+    
+    # difference in coral community based on dominant benthic habitat type? 
+    
+        # site assumption: do groups have homogeneous variances? 
+        dis = vegdist(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)], method="bray")
+        mod = betadisper(dis, reference_fishNMDS$Dominant_Benthic_Habitat_Type)
+        anova(mod)      # p>0.05, proceed
+        plot(mod)
+    
+    adonis2(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)] ~ Dominant_Benthic_Habitat_Type, 
+            data = reference_fishNMDS, 
+            permutations = 9999,
+            method = "bray")                     # difference in community based on BENTHIC HABITAT TYPE
     
     
     

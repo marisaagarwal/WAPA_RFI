@@ -25,6 +25,23 @@
 
 
 ## 2. Data grooming
+    
+    
+## 3. Create vegan/NMDS data
+    
+    fishNMDSdata =  
+        fishdata %>% 
+            dplyr::select(-c(Date, Total_Length, Notes)) %>%
+            group_by(Unit, Transect, Species) %>%
+            dplyr::summarise(count = length(Species)) %>%
+            pivot_wider(names_from = "Species", values_from = "count", values_fill = 0)
+            
+            
+            
+        
+        
+        
+        
 
 
     

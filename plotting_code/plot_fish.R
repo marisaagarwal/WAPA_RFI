@@ -80,5 +80,96 @@
              geom_smooth(method = "lm", aes(x = Fresh_Dist, y = fish_density), color = "pink", fill = "pink") +
              labs(x = "Distance from Transect", y = "Fish Density") +
              theme_light()
-
+     
+     
+## 4. Plot NMDS (species level) ----
+     
+     # NMDS plot of coral communities at each unit
+     plotting_fishNMDS %>%
+         ggplot(aes(x = NMDS1, y = NMDS2, color = Unit)) +
+         geom_point(size = 3, alpha = 0.4) +
+         geom_text(label = plotting_fishNMDS$Transect) +
+         stat_ellipse(linetype = 2, size = 1) +
+         theme_light()
+     
+     
+     find_hull = function(plotting_fishNMDS) plotting_fishNMDS[chull(plotting_fishNMDS$NMDS1, plotting_fishNMDS$NMDS2), ]
+     hulls = ddply(plotting_fishNMDS, "Unit", find_hull)
+     
+     ggplot() +
+         geom_point(data = plotting_fishNMDS, 
+                    aes(x = NMDS1, y = NMDS2, color = Unit)) +
+         geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, 
+                                        fill = Unit, color = Unit),
+                      alpha = 0.3) +
+         theme_light()
+     
+     
+     # how do different species contribute to NMDS separation?
+     ggplot() +
+         geom_point(data = plotting_fishNMDS,
+                    aes(x = NMDS1, y = NMDS2, 
+                        color = Unit),
+                    size = 3, 
+                    alpha = 0.8) +
+         stat_ellipse(data = plotting_fishNMDS, 
+                      aes(x = NMDS1, y = NMDS2, 
+                          color = Unit),
+                      linetype = 2, size = 1) +
+         geom_segment(data = significant_fish_species_scores,
+                      aes(x = 0, xend=NMDS1, y=0, yend=NMDS2),
+                      arrow = arrow(length = unit(0.25, "cm")),
+                      colour = "grey10", 
+                      lwd = 0.3) +                                               # add vector arrows of significant env variables
+         ggrepel::geom_text_repel(data = significant_fish_species_scores, 
+                                  aes(x=NMDS1, y=NMDS2, 
+                                      label = abrev),
+                                  cex = 3, 
+                                  direction = "both", 
+                                  segment.size = 0.25) +                          # add labels for species
+         theme_light()
+     
+     # NMDS plot of coral communities for each substrate characterization
+     plotting_fishNMDS %>%
+         ggplot(aes(x = NMDS1, y = NMDS2, color = Substrate_Characterization)) +
+         geom_point(size = 3, alpha = 0.4) +
+         # geom_text(label = plotting_fishNMDS$Transect) +
+         stat_ellipse(linetype = 2, size = 1) +
+         theme_light()
+     
+     find_hull = function(plotting_fishNMDS) plotting_fishNMDS[chull(plotting_fishNMDS$NMDS1, plotting_fishNMDS$NMDS2), ]
+     hulls = ddply(plotting_fishNMDS, "Substrate_Characterization", find_hull)
+     
+     ggplot() +
+         geom_point(data = plotting_fishNMDS, 
+                    aes(x = NMDS1, y = NMDS2, color = Substrate_Characterization)) +
+         geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, 
+                                        fill = Substrate_Characterization, 
+                                        color = Substrate_Characterization),
+                      alpha = 0.3) +
+         theme_light()
+     
+     
+     # NMDS plot of coral communities for each benthic habitat type
+     plotting_fishNMDS %>%
+         ggplot(aes(x = NMDS1, y = NMDS2, color = Dominant_Benthic_Habitat_Type)) +
+         geom_point(size = 3, alpha = 0.4) +
+         # geom_text(label = plotting_fishNMDS$Transect) +
+         stat_ellipse(linetype = 2, size = 1) +
+         theme_light()
+     
+     find_hull = function(plotting_fishNMDS) plotting_fishNMDS[chull(plotting_fishNMDS$NMDS1, plotting_fishNMDS$NMDS2), ]
+     hulls = ddply(plotting_fishNMDS, "Dominant_Benthic_Habitat_Type", find_hull)
+     
+     ggplot() +
+         geom_point(data = plotting_fishNMDS, 
+                    aes(x = NMDS1, y = NMDS2, color = Dominant_Benthic_Habitat_Type)) +
+         geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, 
+                                        fill = Dominant_Benthic_Habitat_Type, 
+                                        color = Dominant_Benthic_Habitat_Type),
+                      alpha = 0.3) +
+         theme_light()
+     
+     
+     
      
