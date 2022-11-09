@@ -7,7 +7,7 @@
     data_locale = "analysis_code/"
     
     # load in the data
-    source(paste0(data_locale, "analyze_coralNMDS.R"))
+    source(paste0(data_locale, "analyze_coral.R"))
 
 
 ## 2. Plot NMDS (species level) ----

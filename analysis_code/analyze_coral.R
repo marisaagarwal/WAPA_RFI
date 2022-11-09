@@ -6,7 +6,7 @@
     data_locale = "creation_code/"
     
     # load in the data
-    source(paste0(data_locale, "create_coralNMDS.R"))
+    source(paste0(data_locale, "create_coral.R"))
 
 
 ## 2. Alpha Diversity ----
@@ -252,18 +252,15 @@
             dplyr::summarise(mean_density = mean(coral_density),
                              se_density = std.error(coral_density))
     
-        # difference in richness by site? -> yes
+        # difference in density by site? -> yes
         coralsummary %>%
             t_test(coral_density ~ Unit)
         
-        # difference in richness by distance from shore/crest/freshwater? 
-            # -- insert regression here -- 
-        
-        # difference in richness by substrate characterization (overall)? -> no
+        # difference in density by substrate characterization (overall)? -> no
         coralsummary %>%
             anova_test(coral_density ~ Substrate_Characterization)
         
-        # difference in richness by substrate characterization (for each unit)? -> yes, only Asan
+        # difference in density by substrate characterization (for each unit)? -> yes, only Asan
             # Asan
             coralsummary %>%
                 filter(Unit == "Asan") %>%
@@ -278,11 +275,11 @@
                 filter(Unit == "Agat") %>%
                 anova_test(coral_density ~ Substrate_Characterization)
         
-        # difference in richness by benthic habitat type (overall)? -> no
+        # difference in density by benthic habitat type (overall)? -> no
         coralsummary %>%
             anova_test(coral_density ~ Dominant_Benthic_Habitat_Type)
         
-        # difference in richness by benthic habitat type (for each unit)? -> yes, only Asan
+        # difference in density by benthic habitat type (for each unit)? -> yes, only Asan
             # Asan
             coralsummary %>%
                 filter(Unit == "Asan") %>%
@@ -297,7 +294,7 @@
                 filter(Unit == "Agat") %>%
                 anova_test(coral_density ~ Dominant_Benthic_Habitat_Type)
 
-        # difference in richness by distance from shore/crest/freshwater? 
+        # difference in density by distance from shore/crest/freshwater? 
             # to shore
             summary(lm(coral_density ~ Shore_Dist, data = coralsummary))
             # to crest
