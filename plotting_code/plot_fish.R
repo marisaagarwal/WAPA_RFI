@@ -171,5 +171,25 @@
          theme_light()
      
      
+## 5. Plot biomass
+     
+     fish_biomass %>%
+         ggplot(aes(y = weight)) +
+            geom_boxplot() +
+            theme_light()
+     
+     fish_biomass %>%
+         ggplot(aes(x = Unit, y = weight)) +
+         # geom_boxplot() +
+         # geom_jitter(alpha = 0.1) +
+         geom_violin()+
+         theme_light()
+     
+     
+     # length vs. weight
+     fish_biomass %>%
+         ggplot(aes(x = Total_Length, y = weight)) +
+            geom_point() +
+            theme_light()
      
      

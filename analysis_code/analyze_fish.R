@@ -88,7 +88,7 @@
                 filter(!p.adj > 0.05)
         
         
-## 3. Fish density ----
+## 3. Fish Density ----
         
     # calculations
     fish_density = 
@@ -305,5 +305,157 @@
     
     
     
+## 6. Fish Biomass ----
     
+    # create object
+    fish_biomass = merge(fishdata %>% 
+                             dplyr::rename(Species_Code = Species), 
+                         fishcodes)
+    
+    # calculations
+    fish_biomass %<>%
+        mutate(weight = A_value*(Total_Length^B_value))
+
+    # clean data
+    
+        # identify outliers
+        fish_extremeoutliers = 
+            fish_biomass %>%
+                identify_outliers(weight) %>%
+                filter(is.extreme == T)
+        
+        fish_extremeoutliers %>%
+            group_by(Species_Code) %>%
+            dplyr::summarise(count = n())
+        
+        # remove outliers 
+        fish_biomass = 
+            merge(fish_biomass, fish_extremeoutliers, all.x = T) %>%
+            mutate(is.outlier = replace_na(is.outlier, FALSE),
+                   is.extreme = replace_na(is.extreme, FALSE)) %>%
+            filter(is.extreme != TRUE)
+        
+        # beautify
+        fish_biomass %<>%
+            dplyr::select(-c(Date, Notes, A_value, B_value, is.outlier, is.extreme))
+        
+        # add in metadata   
+        fish_biomass = merge(fish_biomass, metadata)
+        
+    #  ANALYSIS
+        
+        # summary stats
+            
+            # average weight by species
+            fish_biomass %>%
+                group_by(Unit, Species_Code) %>%
+                dplyr::summarise(mean_tl = mean(Total_Length),
+                                 se_tl = std.error(Total_Length),
+                                 mean_weight = mean(weight), 
+                                 se_weight = std.error(weight))
+            
+            # average weight by Unit
+            fish_biomass %>%
+                group_by(Unit) %>%
+                dplyr::summarise(mean_tl = mean(Total_Length),
+                                 se_tl = std.error(Total_Length),
+                                 mean_weight = mean(weight), 
+                                 se_weight = std.error(weight))
+            
+            # average weight by substrate characterization
+            fish_biomass %>%
+                group_by(Substrate_Characterization) %>%
+                dplyr::summarise(mean_tl = mean(Total_Length),
+                                 se_tl = std.error(Total_Length),
+                                 mean_weight = mean(weight), 
+                                 se_weight = std.error(weight))
+
+        # difference in weight
+            
+            # between units
+            fish_biomass %>%
+                t_test(weight ~ Unit)
+            
+            # by species
+            fish_biomass %>%
+                anova_test(weight ~ Species_Code)
+            
+            # between units, species specific
+            
+            
+            
+            # by substrate characterization
+                
+                # overall 
+                fish_biomass %>%
+                    anova_test(weight ~ Substrate_Characterization)
+                
+                fish_biomass %>%
+                    tukey_hsd(weight ~ Substrate_Characterization)
+            
+                # Agat 
+                fish_biomass %>%
+                    filter(Unit == "Agat") %>%
+                    anova_test(weight ~ Substrate_Characterization)
+                
+                fish_biomass %>%
+                    filter(Unit == "Agat") %>%
+                    tukey_hsd(weight ~ Substrate_Characterization)
+                
+                # Asan
+                fish_biomass %>%
+                    filter(Unit == "Asan") %>%
+                    anova_test(weight ~ Substrate_Characterization)
+                
+                fish_biomass %>%
+                    filter(Unit == "Asan") %>%
+                    tukey_hsd(weight ~ Substrate_Characterization)
+           
+            # by benthic habitat
+                
+                # overall 
+                fish_biomass %>%
+                    anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                
+                fish_biomass %>%
+                    tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                
+                # Agat 
+                fish_biomass %>%
+                    filter(Unit == "Agat") %>%
+                    anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                
+                fish_biomass %>%
+                    filter(Unit == "Agat") %>%
+                    tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                
+                # Asan
+                fish_biomass %>%
+                    filter(Unit == "Asan") %>%
+                    anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                
+                fish_biomass %>%
+                    filter(Unit == "Asan") %>%
+                    tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                
+                
+                
+        # difference in total lengths
+            
+            # between units
+            fish_biomass %>%
+                t_test(Total_Length ~ Unit)
+            
+            # by species
+            fish_biomass %>%
+                anova_test(Total_Length ~ Species_Code)
+
+        
+        
+        
+        
+     
+        
+    
+        
         
