@@ -171,7 +171,7 @@
          theme_light()
      
      
-## 5. Plot biomass
+## 5. Plot biomass and length ----
      
      fish_biomass %>%
          ggplot(aes(y = weight)) +
@@ -192,4 +192,148 @@
             geom_point() +
             theme_light()
      
+     # by species
+     
+        # weight
+        fish_biomass %>%
+            group_by(Unit, Species_Code) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                            se_tl = std.error(Total_Length),
+                            mean_weight = mean(weight), 
+                            se_weight = std.error(weight)) %>%
+            dplyr::filter(!Species_Code %in% unpaired_unit_fish_species) %>%
+            ggplot(aes(x = Species_Code, y = mean_weight, fill = Unit)) +
+                geom_col(position="dodge") +
+                geom_errorbar(aes(ymin = mean_weight-se_weight, 
+                                  ymax = mean_weight+se_weight), 
+                              position = position_dodge(width = 0.9)) +
+                theme_light()
+
+        # substrate
+        fish_biomass %>%
+            group_by(Substrate_Characterization, Species_Code) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            dplyr::filter(Species_Code == "MUFL") %>%
+            ggplot(aes(x = Species_Code, y = mean_weight, fill = Substrate_Characterization)) +
+                geom_col(position="dodge") +
+                geom_errorbar(aes(ymin = mean_weight-se_weight, 
+                                  ymax = mean_weight+se_weight), 
+                              position = position_dodge(width = 0.9)) +
+                theme_light()
+        
+     
+     # by substrate characterization
+     
+        # weight
+        fish_biomass %>%
+         group_by(Substrate_Characterization) %>%
+         dplyr::summarise(mean_tl = mean(Total_Length),
+                          se_tl = std.error(Total_Length),
+                          mean_weight = mean(weight), 
+                          se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Substrate_Characterization, y = mean_weight)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_weight-se_weight, 
+                                  ymax = mean_weight+se_weight)) +
+                theme_light()
+        
+        fish_biomass %>%
+            group_by(Unit, Substrate_Characterization) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Substrate_Characterization, y = mean_weight)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_weight-se_weight, 
+                                  ymax = mean_weight+se_weight)) +
+                facet_wrap(~Unit) +
+                theme_light()
+        
+        # length
+        fish_biomass %>%
+            group_by(Substrate_Characterization) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Substrate_Characterization, y = mean_tl)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_tl-se_tl, 
+                                  ymax = mean_tl+se_tl)) +
+                theme_light()
+        
+        fish_biomass %>%
+            group_by(Unit, Substrate_Characterization) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Substrate_Characterization, y = mean_tl)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_tl-se_tl, 
+                                  ymax = mean_tl+se_tl)) +
+                facet_wrap(~Unit) +
+                theme_light()
+        
+    # by dominant benthic habitat type
+        
+        # weight
+        fish_biomass %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_weight)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_weight-se_weight, 
+                                  ymax = mean_weight+se_weight)) +
+                theme_light()
+        
+        fish_biomass %>%
+            group_by(Unit, Dominant_Benthic_Habitat_Type) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_weight)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_weight-se_weight, 
+                                  ymax = mean_weight+se_weight)) +
+                facet_wrap(~Unit) +
+                theme_light()
+        
+        # length
+        fish_biomass %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_tl)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_tl-se_tl, 
+                                  ymax = mean_tl+se_tl)) +
+                theme_light()
+        
+        fish_biomass %>%
+            group_by(Unit, Dominant_Benthic_Habitat_Type) %>%
+            dplyr::summarise(mean_tl = mean(Total_Length),
+                             se_tl = std.error(Total_Length),
+                             mean_weight = mean(weight), 
+                             se_weight = std.error(weight)) %>%
+            ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_tl)) +
+                geom_col() +
+                geom_errorbar(aes(ymin = mean_tl-se_tl, 
+                                  ymax = mean_tl+se_tl)) +
+                facet_wrap(~Unit) +
+                theme_light()
+        
+        
+        
+        
      
