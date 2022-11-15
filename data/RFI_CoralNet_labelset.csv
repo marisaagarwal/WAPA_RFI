@@ -1,0 +1,71 @@
+Taxon_Name,Species_Code,Functional_Group,Detailed_Func_Group
+Acropora,ACRO,Coral,Hexacorallia
+Acanthastrea,ACSP,Coral,Hexacorallia
+Acropora humilis,AHUM,Coral,Hexacorallia
+Acropora muricata,AMUR,Coral,Hexacorallia
+Acropora cf. pulchra,APUL,Coral,Hexacorallia
+Astrea,ATSP,Coral,Hexacorallia
+Other hard coral,CORA,Coral,Hexacorallia
+Cyphastrea,CSPE,Coral,Hexacorallia
+Ctenactis,CTSP,Coral,Hexacorallia
+Cycloseris,CYSP,Coral,Hexacorallia
+Diploastrea heliopora,DPHE,Coral,Hexacorallia
+Dipsastraea,DPSP,Coral,Hexacorallia
+Favites,FAVS,Coral,Hexacorallia
+Fungia,FUSP,Coral,Hexacorallia
+Galaxea fascicularis,GFAS,Coral,Hexacorallia
+Goniastrea,GNSP,Coral,Hexacorallia
+Goniopora,GPSP,Coral,Hexacorallia
+Goniastrea edwardsi_retiformis,GRET,Coral,Hexacorallia
+Goniastrea stelligera,GSTE,Coral,Hexacorallia
+Herpolitha,HESP,Coral,Hexacorallia
+Hydnophora microconos,HMIC,Coral,Hexacorallia
+Leptastrea,LESP,Coral,Hexacorallia
+Leptoria,LPHR,Coral,Hexacorallia
+Leptastrea purpurea,LPUR,Coral,Hexacorallia
+Montipora,MONS,Coral,Hexacorallia
+Montipora verrucosa,MVER,Coral,Hexacorallia
+Porites annae,PANN,Coral,Hexacorallia
+Pavona cactus,PCAC,Coral,Hexacorallia
+Porites cylindrica,PCYL,Coral,Hexacorallia
+Platygyra daedalea,PDAE,Coral,Hexacorallia
+Pocillopora damicornis,PDAM,Coral,Hexacorallia
+Pavona decussata,PDEC,Coral,Hexacorallia
+Pavona decussata_divaricata_frondifera,PDIV,Coral,Hexacorallia
+Plesiastrea versipora,PLVE,Coral,Hexacorallia
+Porites (massive),PMAS,Coral,Hexacorallia
+Pocillopora,POSP,Coral,Hexacorallia
+Platygyra pini,PPIN,Coral,Hexacorallia
+Porites rus,PRUS,Coral,Hexacorallia
+Psammocora contigua,PSCO,Coral,Hexacorallia
+Psammocora profundacella,PSPR,Coral,Hexacorallia
+Pavona varians,PVAR,Coral,Hexacorallia
+Pavona venosa,PVEN,Coral,Hexacorallia
+Pavona,PVSP,Coral,Hexacorallia
+Heliopora coerulea,HCOE,Coral,Octocorallia
+Other invertebrate,INVE,Other Invertebrate,Mobile Invertebrate
+Sinularia,SINU,Coral,Octocorallia
+Other Soft Corals,SOFT,Coral,Octocorallia
+Dead coral,DEAD,Substrate,Substrate
+Cyanobacteria,CYAN,Cyanobacteria,Cyanobacteria
+Unknown,NOID,Other,Other
+Other,OTHR,Other,Other
+Sand / Rubble,SARU,Substrate,Substrate
+Transect Tape,TAPE,Other,Other
+Amphiroa sp.,AMPH,Algae,Red Algae
+Boodlea,BOOD,Algae,Green Algae
+Red algae - branching,BRCA,Algae,Red Algae
+Caulerpa racemosa,CARA,Algae,Green Algae
+Caulerpa spp.,CAUL,Algae,Green Algae
+Chrysocystis fragilis,CHFR,Algae,Golden Algae
+Dictyota,DICT,Algae,Brown Algae
+Halimeda,HALI,Algae,Green Algae
+Macroalgae,MALG,Algae,Brown Algae
+Neomeris,NESP,Algae,Green Algae
+Padina,PADN,Algae,Brown Algae
+Sargassum,SARG,Algae,Brown Algae
+Turbinaria (algae),TURB,Algae,Brown Algae
+Valonia spp.,VALO,Algae,Green Algae
+Seagrass (Enhalus acoroides),EACO,Seagrass,Seagrass
+Halophila minor,HMIN,Seagrass,Seagrass
+Halodule uninervis,HUNI,Seagrass,Seagrass
