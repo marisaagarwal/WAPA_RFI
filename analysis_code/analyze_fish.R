@@ -421,6 +421,33 @@
                     dplyr::filter(adj.p.value <= 0.05) %>%
                     dplyr::select(c(Species_Code, contrast, adj.p.value))
 
+            # between benthic habitats, species specific (i.e., which species weighed diff across benthic habitat types)
+                fish_biomass_benthic_models = 
+                    fish_biomass %>%
+                    group_by(Species_Code) %>%
+                    dplyr::filter(n_distinct(Dominant_Benthic_Habitat_Type) >= 2) %>%
+                    group_by(Species_Code) %>%
+                    nest() %>%
+                    mutate(aov = map(data, ~aov(weight ~ Dominant_Benthic_Habitat_Type, 
+                                                data = .x)),
+                           tukey = map(data, ~TukeyHSD(aov(weight ~ Dominant_Benthic_Habitat_Type, 
+                                                           data = .x))))
+               
+                fish_biomass_benthic_models %>%
+                    mutate(tidy_aov = map(aov, tidy), 
+                           glance_aov = map(aov, glance),
+                           augment_aov = map(aov, augment)) %>%
+                    unnest(tidy_aov) %>%
+                    dplyr::filter(p.value <= 0.05)
+                
+                fish_biomass_benthic_models %>%
+                    mutate(coefs = purrr::map(tukey, tidy, conf.int = F)) %>% 
+                    unnest(coefs) %>%
+                    dplyr::filter(adj.p.value <= 0.05) %>%
+                    dplyr::select(c(Species_Code, contrast, adj.p.value))
+                
+                
+                
      
             # by substrate characterization
                 
