@@ -119,7 +119,7 @@
         ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_richness)) +
         geom_col() +
         geom_errorbar(aes(ymin = mean_richness-se_richness, 
-                          ymax = mean_richness+se_richness)
+                          ymax = mean_richness+se_richness))
     
     # distance from shore/crest/freshwater
     coralsummary %>%
