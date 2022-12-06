@@ -392,7 +392,7 @@
             
             # between units, species specific (i.e., which species weighed diff across units)
             fish_biomass %>%
-                dplyr::filter(!Species_Code %in% unpaired_fish_species) %>%
+                dplyr::filter(!Species_Code %in% unpaired_unit_fish_species) %>%
                 group_by(Species_Code) %>%
                 pairwise_t_test(weight ~ Unit)
             
@@ -445,8 +445,6 @@
                     unnest(coefs) %>%
                     dplyr::filter(adj.p.value <= 0.05) %>%
                     dplyr::select(c(Species_Code, contrast, adj.p.value))
-                
-                
                 
      
             # by substrate characterization
@@ -512,9 +510,43 @@
             # by species
             fish_biomass %>%
                 anova_test(Total_Length ~ Species_Code)
-
+            
+            
+    # difference in biomass by distance from shore/crest/freshwater? 
+            # to shore --> yes
+            summary(lm(weight ~ Shore_Dist, data = fish_biomass))
+            # to crest --> no
+            summary(lm(weight ~ Crest_Dist, data = fish_biomass))
+            # to freshwater output --> no
+            summary(lm(weight ~ Fresh_Dist, data = fish_biomass))
+            
+    # difference in total length by distance from shore/crest/freshwater? 
+            # to shore --> yes
+            summary(lm(Total_Length ~ Shore_Dist, data = fish_biomass))
+            # to crest --> no
+            summary(lm(Total_Length ~ Crest_Dist, data = fish_biomass))
+            # to freshwater output --> no
+            summary(lm(Total_Length ~ Fresh_Dist, data = fish_biomass))
+            
         
+## 7. Summary items ----
+            
+    # number of different species & families
+    fishdata %<>%
+        dplyr::rename(Species_Code = Species) 
+            
+    output = merge(fishdata, fishcodes)    
+    
+    length(unique(output$Species_Code))
+    length(unique(output$Family))
+    
+    # frequency of different families
+    output %>%
+        group_by(Family) %>%
+        tally(sort = T) %>%
+        mutate(prop = n/3190)
         
+    
         
         
      

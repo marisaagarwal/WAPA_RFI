@@ -12,7 +12,7 @@
 ##
 ##  Authors:       Marisa Agarwal
 ##
-##  Start Date:    summer 2022, analyses started: 11/3/2022
+##  Start Date:    summer 2022, analysis started: 11/3/2022
 
 
 ##  Notes:         RUN THIS FILE BEFORE EVERY SESSION 
@@ -67,6 +67,6 @@
     library(multcompView)
     library(ggpubr)
 
-    
+
 ## 3. Generate data objects
 ## if things need to be loaded in before every session, include them here

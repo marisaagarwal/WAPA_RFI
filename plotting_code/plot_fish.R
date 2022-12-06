@@ -231,7 +231,7 @@
                              se_tl = std.error(Total_Length),
                              mean_weight = mean(weight), 
                              se_weight = std.error(weight)) %>%
-            dplyr::filter(Species_Code == "SIAR") %>%
+            # dplyr::filter(Species_Code == "SIAR") %>%
             ggplot(aes(x = Species_Code, y = mean_weight, fill = Dominant_Benthic_Habitat_Type)) +
                 geom_col(position="dodge") +
                 geom_errorbar(aes(ymin = mean_weight-se_weight, 
