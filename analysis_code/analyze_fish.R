@@ -545,10 +545,163 @@
         group_by(Family) %>%
         tally(sort = T) %>%
         mutate(prop = n/3190)
-        
     
-        
-        
+    # frequency of different species
+    output %>%
+        group_by(Unit, Family, Taxon_Name) %>%
+        tally(sort = T)
+    
+    viewer = 
+    output %>%
+        filter(Unit == "Agat") %>%
+        group_by(Family, Taxon_Name) %>%
+        tally(sort = T)
+    
+    
+## 8. NMDS (family level) ----
+    
+    # set up data       
+    fishNMDSdata_family = 
+        fishNMDSdata %>%
+        pivot_longer(cols = c(3:106), names_to = "Species_Code", values_to = "value")
+    
+    fishNMDSdata_family = merge(fishNMDSdata_family, fishcodes)
+    
+    fishNMDSdata_family %<>%
+        dplyr::select(c(Unit, Transect, value, Family)) %>%
+        pivot_wider(names_from = "Family", values_from = "value", values_fn = "sum", values_fill = 0)
+    
+    vegan_fishNMDS_data_family = 
+        merge(fishsummary %>%
+                  dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)),
+              fishNMDSdata_family)
+    
+    
+    vegan_fishNMDS_data_family = 
+        merge(fishsummary %>%
+                  dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)),
+              fishNMDSdata_family) 
+    
+    # conduct NMDS 
+    fishNMDS_object_family = metaMDS(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)], 
+                              k = 2,
+                              distance = "bray", 
+                              trymax = 100)
+    
+    # examine stressplot & baseplot
+    stressplot(fishNMDS_object_family)
+    plot(fishNMDS_object_family)
+    
+    # create parsed down grouping dataframe and add row_ID column
+    reference_fishNMDS_family = 
+        vegan_fishNMDS_data_family %>%
+        dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)) %>%
+        ungroup() %>%
+        dplyr::mutate(row_ID = row_number())
+    
+    # extract data for plotting
+    plotting_fishNMDS_family = 
+        scores(fishNMDS_object_family, display = "sites") %>% 
+        as.data.frame() %>% 
+        rownames_to_column("row_ID")
+    
+    plotting_fishNMDS_family = merge(reference_fishNMDS_family, plotting_fishNMDS_family)
+    
+    # fit environmental and species vectors
+    fishNMDS_envfit_family =
+        envfit(fishNMDS_object_family, 
+               reference_fishNMDS_family, 
+               permutations = 999,
+               na.rm = TRUE) # this fits environmental vectors
+    
+    fishNMDS_speciesfit_family =
+        envfit(fishNMDS_object_family, 
+               vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)], 
+               permutations = 999,
+               na.rm = T) # this fits species vectors      
+    
+    # which species contribute to differences in NMDS plots?
+    fish_species_scores_family =
+        as.data.frame(scores(fishNMDS_speciesfit_family,
+                             display = "vectors"))                                      #save species intrinsic values into dataframe
+    
+    fish_species_scores_family = cbind(fish_species_scores_family, 
+                                Family = rownames(fish_species_scores_family))        #add species names to dataframe
+    
+    fish_species_scores_family = cbind(fish_species_scores_family,
+                                pval = fishNMDS_speciesfit_family$vectors$pvals)      #add pvalues to dataframe so you can select species which are significant
+    
+    
+    fish_species_scores_family = cbind(fish_species_scores_family,
+                                abrev = abbreviate(fish_species_scores_family$Family,
+                                                   minlength = 4, 
+                                                   method = "both"))                #abbreviate species names
+    
+    significant_fish_species_scores_family = subset(fish_species_scores_family,
+                                             pval <= 0.05)                          #subset data to show species significant at 0.05
+    
+    # which environmental factors contribute to differences in NMDS plots?
+    fish_env_scores_family =
+        as.data.frame(scores(fishNMDS_envfit_family,
+                             display = "vectors"))                        # save species intrinsic values into dataframe
+    
+    fish_env_scores_family = cbind(fish_env_scores_family, 
+                            Species = rownames(fish_env_scores_family))        # add species names to dataframe
+    
+    fish_env_scores_family = cbind(fish_env_scores_family,
+                            pval = fishNMDS_envfit_family$vectors$pvals)       # add pvalues to dataframe so you can select species which are significant
+    
+    
+    # current_env_scores = cbind(current_env_scores,
+    #                                abrev = abbreviate(current_env_scores$Species,
+    #                                                   minlength = 4, 
+    #                                                   method = "both"))                #abbreviate environmental factor names
+    
+    significant_fish_env_scores_family = subset(fish_env_scores_family,
+                                         pval <= 0.05)     #subset data to show environmental factors significant at 0.05
+    
+    
+## 9. PERMANOVA of NMDS (family level) ----
+    
+    # difference in fish community based on unit? 
+    
+    # site assumption: do groups have homogeneous variances? 
+    dis = vegdist(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)], method="bray")
+    mod = betadisper(dis, reference_fishNMDS_family$Unit)
+    anova(mod)      # p<0.05, violated ... but proceeding anyways
+    plot(mod)
+    
+    adonis2(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)] ~ Unit, 
+            data = reference_fishNMDS_family, 
+            permutations = 9999,
+            method = "bray")                     # difference in community based on UNIT
+    
+    # difference in fish community based on substrate characterization? 
+    
+    # site assumption: do groups have homogeneous variances? 
+    dis = vegdist(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)], method="bray")
+    mod = betadisper(dis, reference_fishNMDS_family$Substrate_Characterization)
+    anova(mod)      # p<0.05, violated ... but proceeding anyways
+    plot(mod)
+    
+    adonis2(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)] ~ Substrate_Characterization, 
+            data = reference_fishNMDS_family, 
+            permutations = 9999,
+            method = "bray")                     # difference in community based on SUBSTRATE CHARACTERIZATION
+    
+    # difference in coral community based on dominant benthic habitat type? 
+    
+    # site assumption: do groups have homogeneous variances? 
+    dis = vegdist(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)], method="bray")
+    mod = betadisper(dis, reference_fishNMDS_family$Dominant_Benthic_Habitat_Type)
+    anova(mod)      # p<0.05, violated ... but proceeding anyways
+    plot(mod)
+    
+    adonis2(vegan_fishNMDS_data_family[,5:ncol(vegan_fishNMDS_data_family)] ~ Dominant_Benthic_Habitat_Type, 
+            data = reference_fishNMDS_family, 
+            permutations = 9999,
+            method = "bray")                     # difference in community based on BENTHIC HABITAT TYPE
+    
      
         
     

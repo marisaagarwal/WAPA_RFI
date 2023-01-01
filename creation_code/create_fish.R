@@ -26,6 +26,11 @@
 
 ## 2. Data grooming
     
+    # ADD LEHA to fishcodes
+    fishcodes %<>%
+        add_row(Family = "Lethrinidae", Taxon_Name = "Lethrinus harak", Genus = "Lethrinus", Species = "harak",
+                Species_Code = "LEHA", A_value = 0.0281, B_value = 2.89)
+    
     
 ## 3. Create vegan/NMDS data
     

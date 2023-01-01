@@ -53,6 +53,7 @@
     library(easystats)
     library(multcomp)
     library(vegan)
+    # library(coin)
     
     # call to visualisation & output generation
     library(ggplot2)
@@ -70,3 +71,5 @@
 
 ## 3. Generate data objects
 ## if things need to be loaded in before every session, include them here
+    
+    

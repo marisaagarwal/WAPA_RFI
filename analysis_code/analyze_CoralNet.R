@@ -48,6 +48,12 @@
         group_by(Site, Transect, Detailed_Func_Group) %>%
         dplyr::mutate(percent_cover = (count/n_annotations)*100)
     
+
+    detailed_func_cover %>%
+        group_by(Site, Detailed_Func_Group) %>%
+        dplyr::summarise(mean_cover = mean(percent_cover), 
+                         std_error_cover = std.error(percent_cover))
+    
     
     # by broad functional group
     broad_func_cover = 
@@ -58,15 +64,13 @@
     broad_func_cover %<>%
         group_by(Site, Transect, Functional_Group) %>%
         dplyr::mutate(percent_cover = (count/n_annotations)*100)
-    
+
     merge(annotations_per_site, CoralNetannotations %>%
                                   group_by(Site, Functional_Group) %>%
                                   dplyr::summarise(count = n())) %>%
         dplyr::mutate(percent_cover = (count/n_annotations)*100)
-        
-    
 
-    
+        
 ## 3. Most common labels by site ----
     
     common_species_labels = 
@@ -83,7 +87,55 @@
         CoralNetannotations %>%
             group_by(Site, Functional_Group) %>%
             dplyr::summarise(n_annotations = n())
+    
+    # differences in functional group cover by site 
+    CoralNetannotations %>%
+        group_by(Site, Transect, Functional_Group) %>%
+        dplyr::summarise(count = n()) %>%
+        ungroup() %>%
+        group_by(Functional_Group) %>%
+        nest() %>%
+            mutate(t_test = map(data, 
+                                ~t.test(count ~ Site, data = .x))) %>%
+            mutate(tidy_test = map(t_test, tidy)) %>%
+            unnest(tidy_test)
          
+    
+## 4. Most common labels by dominant benthic habitat ----   
+    
+    common_labels_benthic = 
+    merge(CoralNetannotations, metadata %>%
+                                    dplyr::rename("Site" = "Unit") %>%
+                                    dplyr::select(c(Site, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)))
+    
+    habitat_freqs = 
+        common_labels_benthic %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            dplyr::summarise(total_annotations = n())
+        
+    common_labels_benthic %<>%
+        group_by(Dominant_Benthic_Habitat_Type, Functional_Group) %>%
+        dplyr::summarise(n_annotations = n()) %>%
+        full_join(habitat_freqs) %>%
+        dplyr::mutate(percent_annotations = (n_annotations/total_annotations) * 100 )
+    
+    # differences in functional group cover by benthic habitat types 
+    CoralNetannotations %>%
+        full_join(metadata %>% 
+                      dplyr::rename(Site = Unit) %>%
+                      dplyr::select(c(Site, Transect, Dominant_Benthic_Habitat_Type))) %>%
+        group_by(Dominant_Benthic_Habitat_Type, Transect, Functional_Group) %>%
+        dplyr::summarise(count = n()) %>%
+        ungroup() %>%
+        group_by(Functional_Group) %>%
+        nest() %>%
+        mutate(anova_test = map(data, 
+                                ~aov(count ~ Dominant_Benthic_Habitat_Type, data = .x)),
+               tukey = map(data, 
+                           ~ TukeyHSD(aov(count ~ Dominant_Benthic_Habitat_Type, data = .x), conf.level=.95))) %>%
+        mutate(anova_test = map(anova_test, tidy), 
+               tukey = map(tukey, tidy)) 
+        # %>% unnest(anova_test)
     
     
     

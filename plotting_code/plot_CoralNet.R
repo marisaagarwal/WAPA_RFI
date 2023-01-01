@@ -43,11 +43,23 @@
         facet_wrap(~Site, ncol = 1) +
         theme_light()
     
-    broad_func_cover %>%
-        ggplot(aes(Site, percent_cover, fill = Functional_Group)) +
-        geom_bar(position = "fill", stat = "identity") +
-        scale_fill_flat_d() +
-        labs(y = "Proportion of Benthic Cover", fill = "Functional Group") +
-        theme_pubr(legend = "right")
+        # site
+        broad_func_cover %>%
+            ggplot(aes(Site, percent_cover, fill = Functional_Group)) +
+            geom_bar(position = "fill", stat = "identity") +
+            scale_fill_flat_d() +
+            labs(y = "Proportion of Benthic Cover", fill = "Functional Group") +
+            theme_pubr(legend = "right")
+        
+        # dominant benthic habitat
+        common_labels_benthic %>%
+            ggplot(aes(Dominant_Benthic_Habitat_Type, percent_annotations, fill = Functional_Group)) +
+            geom_bar(position = "fill", stat = "identity") +
+            scale_fill_flat_d() +
+            labs(y = "Proportion of Benthic Cover", fill = "Functional Group") +
+            theme_pubr(legend = "right")
+    
+    
+    
     
     
