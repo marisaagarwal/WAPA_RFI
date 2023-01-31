@@ -30,8 +30,8 @@
     rm(list=ls())
     
     # call to core packages for data manipulation
-    library(dplyr)
     library(plyr)
+    library(dplyr)
     library(tidyr)
     library(magrittr)      
     library(purrr)

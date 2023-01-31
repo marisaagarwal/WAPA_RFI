@@ -8,6 +8,7 @@
     
     # load in the data
     source(paste0(data_locale, "analyze_coral.R"))
+    source(paste0(data_locale, "analyze_CoralNet.R"))
 
 
 ## 2. Plot NMDS (species level) ----
@@ -373,4 +374,60 @@
                                  direction = "both", 
                                  segment.size = 0.25) +                          # add labels for genus
         theme_light()
+    
+    
+## 6. Plot coral cover ---- 
+    
+    # by substrate
+    coral_cover %>%
+        group_by(Substrate_Characterization) %>%
+        summarise(mean_cover = mean(percent_cover),
+                  se_cover = std.error(percent_cover)) %>%
+        mutate(Substrate_Characterization = recode(Substrate_Characterization, 
+                                                   AggregatePatchReef = "Aggregate Patch \n Reef",
+                                                   AggregateReef = "Aggregate Reef",
+                                                   ReefRubble = "Reef Rubble",
+                                                   RockBoulder = "Rock Boulder",
+                                                   SandScatteredCoral = "Sand Scattered \n Coral",
+                                                   SandScatteredRock = "Sand Scattered \n Rock" )) %>%
+        ggplot(aes(x = reorder(Substrate_Characterization, mean_cover), y = mean_cover, 
+                   fill = Substrate_Characterization)) +
+        geom_col() +
+        scale_fill_flat_d() +
+        geom_errorbar(aes(ymin = mean_cover-se_cover, 
+                          ymax = mean_cover+se_cover , width = 0.5)) +
+        geom_signif(comparisons=list(c("Aggregate Patch \n Reef", "Sand")), annotations="**",
+                    y_position = 57, tip_length = 0.02, vjust=0.4) +
+        geom_signif(comparisons=list(c("Aggregate Reef", "Sand")), annotations="*",
+                    y_position = 61, tip_length = 0.02, vjust=0.4) +
+        labs(x="Substrate Characterization", y="Mean Coral Cover (± Standard Error)") +
+        theme_pubr(legend = "none")
+
+    # by benthic habitat type
+    coral_cover %>%
+        group_by(Dominant_Benthic_Habitat_Type) %>%
+        summarise(mean_cover = mean(percent_cover),
+                  se_cover = std.error(percent_cover)) %>%
+        ggplot(aes(x = reorder(Dominant_Benthic_Habitat_Type, mean_cover), y = mean_cover,
+                   fill = Dominant_Benthic_Habitat_Type)) +
+        geom_col() +
+        scale_fill_flat_d() +
+        geom_errorbar(aes(ymin = mean_cover-se_cover, 
+                          ymax = mean_cover+se_cover, width = 0.5)) +
+        geom_signif(comparisons=list(c("Seagrass", "Coral")), annotations="***",
+                    y_position = 29, tip_length = 0.02, vjust=0.4) +
+        geom_signif(comparisons=list(c("Uncolonized", "Coral")), annotations="**",
+                    y_position = 35, tip_length = 0.02, vjust=0.4) +
+        geom_signif(comparisons=list(c("Macroalgae", "Coral")), annotations="*",
+                    y_position = 38, tip_length = 0.02, vjust=0.4) +
+        geom_signif(comparisons=list(c("Seagrass", "Turf")), annotations="*",
+                    y_position = 32, tip_length = 0.02, vjust=0.4) +
+        labs(x="Dominant Benthic Habitat Type", y="Mean Coral Cover (± Standard Error)") +
+        theme_pubr(legend = "none")
+    
+    
+    
+    
+    
+    
     

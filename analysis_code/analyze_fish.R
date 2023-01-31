@@ -15,7 +15,7 @@
     fish_diversity = 
         fishdata %>%
             group_by(Unit, Transect) %>%
-            dplyr::summarise(sp_richness = length(unique(Species))) %>%
+            summarise(sp_richness = length(unique(Species))) %>%
             mutate(unit_transect = paste(Unit, "_", Transect))
 
     #combining metadata and diversity
@@ -26,12 +26,31 @@
         # summary stats
         fishsummary %>%
             group_by(Unit) %>%
-            dplyr::summarise(mean_richness = mean(sp_richness),
+            summarise(mean_richness = mean(sp_richness),
                              se_richness = std.error(sp_richness))
+        
 
         # difference in richness by unit? --> no
         fishsummary %>%
             t_test(sp_richness ~ Unit)
+        
+                # check assumptions
+                    # extreme outliers? no. 
+                    fishsummary %>%
+                        group_by(Unit) %>%
+                        identify_outliers(sp_richness)
+                    # normal? yes.
+                    fishsummary %>%
+                        group_by(Unit) %>%
+                        shapiro_test(sp_richness)
+                    ggqqplot(fishsummary, x = "sp_richness", facet.by = "Unit")
+                    # equal variances? yes.
+                    fishsummary %>% 
+                        levene_test(sp_richness ~ Unit)
+                    
+                # effect size
+                effectsize(t.test(sp_richness ~ Unit, data = fishsummary))
+                
         
         # difference in richness by distance from shore/crest/freshwater? 
             # to shore --> yes
@@ -41,51 +60,83 @@
             # to freshwater output --> yes
             summary(lm(sp_richness ~ Fresh_Dist, data = fishsummary))
         
-        # difference in richness by substrate characterization (overall)? -> yes
+        # difference in richness by substrate characterization? -> yes
         fishsummary %>%
             anova_test(sp_richness ~ Substrate_Characterization)
         
-        fishsummary %>%
-            tukey_hsd(sp_richness ~ Substrate_Characterization) %>%
-            filter(!p.adj > 0.05)
-        
-            # Asan only? --> yes
+                # check assumptions
+                    # extreme outliers? There are 2. 
+                    fishsummary %>% 
+                        group_by(Substrate_Characterization) %>% 
+                        identify_outliers(sp_richness) 
+                    # homogeneity of variance --> p>0.05 is good
+                    fishsummary %>%
+                        levene_test(sp_richness ~ Substrate_Characterization)
+                    # normality --> p>0.05 is good
+                    fishsummary %>%
+                        group_by(Substrate_Characterization) %>%
+                        filter(!Substrate_Characterization %in% c("RockBoulder", "AggregateReef", "SandScatteredRock")) %>%
+                        shapiro_test(sp_richness)
+                    ggqqplot(fishsummary, x = "sp_richness", facet.by = "Substrate_Characterization")
+                    
+            # post-hoc testing
             fishsummary %>%
-                filter(Unit == "Asan") %>%
-                anova_test(sp_richness ~ Substrate_Characterization)
-            
-            fishsummary %>%
-                filter(Unit == "Asan") %>%
                 tukey_hsd(sp_richness ~ Substrate_Characterization) %>%
                 filter(!p.adj > 0.05)
-            
-            # Agat only? --> no
-            fishsummary %>%
-                filter(Unit == "Agat") %>%
-                anova_test(sp_richness ~ Substrate_Characterization)
-            
+        
+                #     # Asan only? --> yes
+                #     fishsummary %>%
+                #         filter(Unit == "Asan") %>%
+                #         anova_test(sp_richness ~ Substrate_Characterization)
+                #     
+                #     fishsummary %>%
+                #         filter(Unit == "Asan") %>%
+                #         tukey_hsd(sp_richness ~ Substrate_Characterization) %>%
+                #         filter(!p.adj > 0.05)
+                #     
+                #     # Agat only? --> no
+                #     fishsummary %>%
+                #         filter(Unit == "Agat") %>%
+                #         anova_test(sp_richness ~ Substrate_Characterization)
+        
         # difference in richness by benthic habitat type (overall)? -> yes
         fishsummary %>%
             anova_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
-            
+
+                # check assumptions
+                    # extreme outliers? no. 
+                    fishsummary %>% 
+                        group_by(Dominant_Benthic_Habitat_Type) %>% 
+                        identify_outliers(sp_richness) 
+                    # homogeneity of variance --> p>0.05 is good
+                    fishsummary %>%
+                        levene_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
+                    # normality --> p>0.05 is good
+                    fishsummary %>%
+                        group_by(Dominant_Benthic_Habitat_Type) %>%
+                        # filter(!Substrate_Characterization %in% c("RockBoulder", "AggregateReef", "SandScatteredRock")) %>%
+                        shapiro_test(sp_richness)
+                    ggqqplot(fishsummary, x = "sp_richness", facet.by = "Dominant_Benthic_Habitat_Type")
+        
+        # post-hoc testing
         fishsummary %>%
             tukey_hsd(sp_richness ~ Dominant_Benthic_Habitat_Type) %>%
             filter(!p.adj > 0.05)
-        
-            # Asan only? --> no
-            fishsummary %>%
-                filter(Unit == "Asan") %>%
-                anova_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
-            
-            # Agat only? --> yes
-            fishsummary %>%
-                filter(Unit == "Agat") %>%
-                anova_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
-            
-            fishsummary %>%
-                filter(Unit == "Agat") %>%
-                tukey_hsd(sp_richness ~ Dominant_Benthic_Habitat_Type) %>%
-                filter(!p.adj > 0.05)
+
+                # # Asan only? --> no
+                # fishsummary %>%
+                #     filter(Unit == "Asan") %>%
+                #     anova_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
+                # 
+                # # Agat only? --> yes
+                # fishsummary %>%
+                #     filter(Unit == "Agat") %>%
+                #     anova_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
+                # 
+                # fishsummary %>%
+                #     filter(Unit == "Agat") %>%
+                #     tukey_hsd(sp_richness ~ Dominant_Benthic_Habitat_Type) %>%
+                #     filter(!p.adj > 0.05)
         
         
 ## 3. Fish Density ----
@@ -94,7 +145,7 @@
     fish_density = 
         fishdata %>%
             group_by(Unit, Transect) %>%
-            dplyr::summarise(total_fish = sum(Transect)) %>%
+            summarise(total_fish = length(Transect)) %>%
             mutate(fish_density = total_fish/50, 
                    unit_transect = paste(Unit, "_", Transect))
         
@@ -104,68 +155,121 @@
     # prune
     fishsummary = 
         fishsummary %>%
-            dplyr::select(c(Unit, Transect, unit_transect, Shore_Dist, Crest_Dist, Fresh_Dist,
-                            Substrate_Characterization, Dominant_Benthic_Habitat_Type, 
-                            sp_richness, fish_density))
+            select(c(Unit, Transect, unit_transect, Shore_Dist, Crest_Dist, Fresh_Dist,
+                     Substrate_Characterization, Dominant_Benthic_Habitat_Type, 
+                     p_richness, fish_density))
         
     # ANALYSIS
         
         # summary stats for unit
         fishsummary %>%
             group_by(Unit) %>%
-            dplyr::summarise(mean_density = mean(fish_density),
+            summarise(mean_density = mean(fish_density),
                              se_density = std.error(fish_density))
         
-        # difference in density by site? -> no
+        # difference in density by site? -> yes
         fishsummary %>%
-            t_test(fish_density ~ Unit)
+            mutate(transform_fish_density = fish_density^(1/3)) %>%
+            t_test(transform_fish_density ~ Unit, var.equal = F)
         
+                # check assumptions
+                    # extreme outliers? no. 
+                    fishsummary %>%
+                        mutate(transform_fish_density = fish_density^(1/3)) %>%
+                        group_by(Unit) %>%
+                        identify_outliers(fish_density) %>%
+                        select(c(Unit, Transect, is.outlier, is.extreme))
+                    # normal? almost with cube root transform
+                    fishsummary %>%
+                        mutate(transform_fish_density = fish_density^(1/3)) %>%
+                        group_by(Unit) %>%
+                        shapiro_test(transform_fish_density)
+                    ggqqplot(fishsummary %>% mutate(transform_fish_density = fish_density^(1/3)), x = "transform_fish_density", facet.by = "Unit")
+                    # equal variances? no.
+                    fishsummary %>% 
+                        mutate(transform_fish_density = fish_density^(1/3)) %>%
+                        levene_test(transform_fish_density ~ Unit)
+                
+                # effect size
+                effectsize(t.test(transform_fish_density ~ Unit, data = fishsummary %>% mutate(transform_fish_density = fish_density^(1/3))))
+        
+    
         # difference in density by substrate characterization (overall)? -> yes
-        fishsummary %>%
-            anova_test(fish_density ~ Substrate_Characterization)
+        fishsummary %>% anova_test(fish_density ~ Substrate_Characterization)
         
+                # check assumptions
+                    # extreme outliers? no. 
+                    fishsummary %>%
+                        group_by(Substrate_Characterization) %>%
+                        identify_outliers(fish_density) %>%
+                        select(c(Unit, Transect, is.outlier, is.extreme))
+                    # normal? basically
+                    fishsummary %>%
+                        group_by(Substrate_Characterization) %>%
+                        filter(!Substrate_Characterization %in% c("AggregateReef", "RockBoulder")) %>%
+                        shapiro_test(fish_density)
+                    ggqqplot(data = fishsummary %>% filter(!Substrate_Characterization %in% c("AggregateReef", "RockBoulder")), x = "fish_density", facet.by = "Substrate_Characterization")
+                    # equal variances? yes.
+                    fishsummary %>% 
+                        levene_test(fish_density ~ Substrate_Characterization)
+
         fishsummary %>%
             tukey_hsd(fish_density ~ Substrate_Characterization) %>%
             filter(!p.adj > 0.05)
         
-            # Asan only? --> yes
-            fishsummary %>%
-                filter(Unit == "Asan") %>%
-                anova_test(fish_density ~ Substrate_Characterization)
-            
-            fishsummary %>%
-                filter(Unit == "Asan") %>%
-                tukey_hsd(fish_density ~ Substrate_Characterization) %>%
-                filter(!p.adj > 0.05)
-            
-            #Agat only? --> no
-            fishsummary %>%
-                filter(Unit == "Agat") %>%
-                anova_test(fish_density ~ Substrate_Characterization)
+            # # Asan only? --> yes
+            # fishsummary %>%
+            #     filter(Unit == "Asan") %>%
+            #     anova_test(fish_density ~ Substrate_Characterization)
+            # 
+            # fishsummary %>%
+            #     filter(Unit == "Asan") %>%
+            #     tukey_hsd(fish_density ~ Substrate_Characterization) %>%
+            #     filter(!p.adj > 0.05)
+            # 
+            # #Agat only? --> no
+            # fishsummary %>%
+            #     filter(Unit == "Agat") %>%
+            #     anova_test(fish_density ~ Substrate_Characterization)
         
         # difference in richness by benthic habitat type (overall)? -> yes
-        fishsummary %>%
+        fishsummary %>% 
             anova_test(fish_density ~ Dominant_Benthic_Habitat_Type)
+        
+            # check assumptions
+                # extreme outliers? some. 
+                fishsummary %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>%
+                    identify_outliers(fish_density) %>%
+                    select(c(Dominant_Benthic_Habitat_Type, Unit, Transect, is.outlier, is.extreme))
+                # normal? yes.
+                fishsummary %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>%
+                    shapiro_test(fish_density)
+                ggqqplot(data = fishsummary, x = "fish_density", facet.by = "Dominant_Benthic_Habitat_Type")
+                # equal variances? yes.
+                fishsummary %>% 
+                    levene_test(fish_density ~ Dominant_Benthic_Habitat_Type)
         
         fishsummary %>%
             tukey_hsd(fish_density ~ Dominant_Benthic_Habitat_Type) %>%
             filter(!p.adj > 0.05)
         
-            # Asan only? --> no
-            fishsummary %>%
-                filter(Unit == "Asan") %>%
-                anova_test(fish_density ~ Dominant_Benthic_Habitat_Type)
-            
-            #Agat only? --> yes
-            fishsummary %>%
-                filter(Unit == "Agat") %>%
-                anova_test(fish_density ~ Dominant_Benthic_Habitat_Type)
-            
-            fishsummary %>%
-                filter(Unit == "Agat") %>%
-                tukey_hsd(fish_density ~ Dominant_Benthic_Habitat_Type) %>%
-                filter(!p.adj > 0.05)
-        
+            # # Asan only? --> no
+            # fishsummary %>%
+            #     filter(Unit == "Asan") %>%
+            #     anova_test(fish_density ~ Dominant_Benthic_Habitat_Type)
+            # 
+            # #Agat only? --> yes
+            # fishsummary %>%
+            #     filter(Unit == "Agat") %>%
+            #     anova_test(fish_density ~ Dominant_Benthic_Habitat_Type)
+            # 
+            # fishsummary %>%
+            #     filter(Unit == "Agat") %>%
+            #     tukey_hsd(fish_density ~ Dominant_Benthic_Habitat_Type) %>%
+            #     filter(!p.adj > 0.05)
+            # 
         # difference in density by distance from shore/crest/freshwater? 
             # to shore
             summary(lm(fish_density ~ Shore_Dist, data = fishsummary))
@@ -309,7 +413,7 @@
     
     # create object
     fish_biomass = merge(fishdata %>% 
-                             dplyr::rename(Species_Code = Species), 
+                             rename(Species_Code = Species), 
                          fishcodes)
     
     # calculations
@@ -347,26 +451,38 @@
         # summary stats
             
             # average weight by species
+            # write_xlsx(
+                fish_biomass %>%
+                           group_by(Unit, Family, Taxon_Name, Species_Code) %>%
+                           dplyr::summarise(mean_tl = mean(Total_Length),
+                                            se_tl = std.error(Total_Length),
+                                            mean_weight = mean(weight), 
+                                            se_weight = std.error(weight)) %>%
+                           dplyr::select(c(Unit, Family, Taxon_Name, Species_Code, mean_weight, se_weight)) %>%
+                           pivot_wider(names_from = Unit, values_from = c(mean_weight,se_weight)),
+                       # path = "average fish weight by species and unit4")
+        
             fish_biomass %>%
                 group_by(Unit, Species_Code) %>%
-                dplyr::summarise(mean_tl = mean(Total_Length),
-                                 se_tl = std.error(Total_Length),
-                                 mean_weight = mean(weight), 
-                                 se_weight = std.error(weight)) %>%
+                summarise(mean_tl = mean(Total_Length),
+                          se_tl = std.error(Total_Length),
+                          mean_weight = mean(weight), 
+                          se_weight = std.error(weight)) %>%
                 dplyr::select(c(Unit, Species_Code, mean_weight, se_weight)) %>%
-                pivot_wider(names_from = Unit, values_from = c(mean_weight,se_weight))
-            
-            unpaired_unit_fish_species = c("ABSX", "CAME", "CHEP", "CHMA", "CHTR", 
-                                      "EPIN", "EPME", "FICO", "FOLO", "GOBI", 
+                pivot_wider(names_from = Unit, values_from = c(mean_weight, se_weight))
+                
+                
+            unpaired_unit_fish_species = c("ABSX", "CAME", "CHEP", "CHMA", "CHTR",
+                                      "EPIN", "EPME", "FICO", "FOLO", "GOBI",
                                       "GOVA", "LUFU", "PABA", "PAMU", "PLDI",
-                                      "PLLA", "PLLD", "POPA", "PTHE", "SCSC", 
+                                      "PLLA", "PLLD", "POPA", "PTHE", "SCSC",
                                       "STPI", "ZEFL", "ZEVE", "ACNC", "CHIN",
-                                      "CHOR", "CHTL", "GNCA", "LABR", "LEOL", 
+                                      "CHOR", "CHTL", "GNCA", "LABR", "LEOL",
                                       "MAME", "MEAT", "MOGR", "MUFL", "MYBE",
                                       "MYMU", "NEOP", "PACL", "PTAN", "SADI",
-                                      "STFA","SYBI", "VAST", "CHUL")
+                                      "STFA","SYBI", "VAST", "CHUL", "LEHA")
             
-            # insufficient_obs_fish_species = c("CHLT", "CHRE", "HEFA", "SIAR")
+                # insufficient_obs_fish_species = c("CHLT", "CHRE", "HEFA", "SIAR")
             
             # average weight by unit
             fish_biomass %>%
@@ -386,93 +502,70 @@
             
         # difference in weight
             
-            # between units
-            fish_biomass %>%
-                t_test(weight ~ Unit)
+            # overall between units --> did not satisfy assumptions of parametric tests, so wilcoxon
+            fish_biomass %>% wilcox_test(weight ~ Unit)
+            fish_biomass %>% wilcox_effsize(weight ~ Unit)
             
-            # between units, species specific (i.e., which species weighed diff across units)
-            fish_biomass %>%
-                dplyr::filter(!Species_Code %in% unpaired_unit_fish_species) %>%
-                group_by(Species_Code) %>%
-                pairwise_t_test(weight ~ Unit)
-            
-            # between substrates, species specific (i.e., which species weighed diff across substrate types)
-            fish_biomass_substrate_models = 
+                # which species weighed different across units?
                 fish_biomass %>%
-                    group_by(Species_Code) %>%
-                    dplyr::filter(n_distinct(Substrate_Characterization) >= 2) %>%
-                    group_by(Species_Code) %>%
-                    nest() %>%
-                    mutate(aov = map(data, ~aov(weight ~ Substrate_Characterization, 
-                                                data = .x)),
-                           tukey = map(data, ~TukeyHSD(aov(weight ~ Substrate_Characterization, 
-                                                           data = .x))))
-    
-                fish_biomass_substrate_models %>%
-                    mutate(tidy_aov = map(aov, tidy), 
-                           glance_aov = map(aov, glance),
-                           augment_aov = map(aov, augment)) %>%
-                    unnest(tidy_aov) %>%
-                    dplyr::filter(p.value <= 0.05)
-                
-                fish_biomass_substrate_models %>%
-                    mutate(coefs = purrr::map(tukey, tidy, conf.int = F)) %>% 
-                    unnest(coefs) %>%
-                    dplyr::filter(adj.p.value <= 0.05) %>%
-                    dplyr::select(c(Species_Code, contrast, adj.p.value))
-
-            # between benthic habitats, species specific (i.e., which species weighed diff across benthic habitat types)
-                fish_biomass_benthic_models = 
-                    fish_biomass %>%
-                    group_by(Species_Code) %>%
-                    dplyr::filter(n_distinct(Dominant_Benthic_Habitat_Type) >= 2) %>%
+                    filter(!Species_Code %in% unpaired_unit_fish_species) %>%
                     group_by(Species_Code) %>%
                     nest() %>%
-                    mutate(aov = map(data, ~aov(weight ~ Dominant_Benthic_Habitat_Type, 
-                                                data = .x)),
-                           tukey = map(data, ~TukeyHSD(aov(weight ~ Dominant_Benthic_Habitat_Type, 
-                                                           data = .x))))
-               
-                fish_biomass_benthic_models %>%
-                    mutate(tidy_aov = map(aov, tidy), 
-                           glance_aov = map(aov, glance),
-                           augment_aov = map(aov, augment)) %>%
-                    unnest(tidy_aov) %>%
+                    mutate(wilcox_model = map(data, ~wilcox.test(weight ~ Unit, 
+                                                data = .x))) %>%
+                    mutate(tidy_wilcox = map(wilcox_model, tidy)) %>%
+                    unnest(tidy_wilcox) %>%
                     dplyr::filter(p.value <= 0.05)
-                
-                fish_biomass_benthic_models %>%
-                    mutate(coefs = purrr::map(tukey, tidy, conf.int = F)) %>% 
-                    unnest(coefs) %>%
-                    dplyr::filter(adj.p.value <= 0.05) %>%
-                    dplyr::select(c(Species_Code, contrast, adj.p.value))
-                
      
             # by substrate characterization
                 
                 # overall 
-                fish_biomass %>%
-                    anova_test(weight ~ Substrate_Characterization)
+                fish_biomass %>% kruskal_test(weight ~ Substrate_Characterization)
+                fish_biomass %>% kruskal_effsize(weight ~ Substrate_Characterization)
                 
-                fish_biomass %>%
-                    tukey_hsd(weight ~ Substrate_Characterization)
-            
-                    # Agat 
-                    fish_biomass %>%
-                        filter(Unit == "Agat") %>%
-                        anova_test(weight ~ Substrate_Characterization)
+                    # # Agat 
+                    # fish_biomass %>%
+                    #     filter(Unit == "Agat") %>%
+                    #     anova_test(weight ~ Substrate_Characterization)
+                    # 
+                    # fish_biomass %>%
+                    #     filter(Unit == "Agat") %>%
+                    #     tukey_hsd(weight ~ Substrate_Characterization)
+                    # 
+                    # # Asan
+                    # fish_biomass %>%
+                    #     filter(Unit == "Asan") %>%
+                    #     anova_test(weight ~ Substrate_Characterization)
+                    # 
+                    # fish_biomass %>%
+                    #     filter(Unit == "Asan") %>%
+                    #     tukey_hsd(weight ~ Substrate_Characterization)
                     
-                    fish_biomass %>%
-                        filter(Unit == "Agat") %>%
-                        tukey_hsd(weight ~ Substrate_Characterization)
                     
-                    # Asan
-                    fish_biomass %>%
-                        filter(Unit == "Asan") %>%
-                        anova_test(weight ~ Substrate_Characterization)
+                    # between substrates, species specific (i.e., which species weighed diff across substrate types)
+                    fish_biomass_substrate_models = 
+                        fish_biomass %>%
+                        group_by(Species_Code) %>%
+                        dplyr::filter(n_distinct(Substrate_Characterization) >= 2) %>%
+                        group_by(Species_Code) %>%
+                        nest() %>%
+                        mutate(aov = map(data, ~aov(weight ~ Substrate_Characterization, 
+                                                    data = .x)),
+                               tukey = map(data, ~TukeyHSD(aov(weight ~ Substrate_Characterization, 
+                                                               data = .x))))
                     
-                    fish_biomass %>%
-                        filter(Unit == "Asan") %>%
-                        tukey_hsd(weight ~ Substrate_Characterization)
+                    fish_biomass_substrate_models %>%
+                        mutate(tidy_aov = map(aov, tidy), 
+                               glance_aov = map(aov, glance),
+                               augment_aov = map(aov, augment)) %>%
+                        unnest(tidy_aov) %>%
+                        dplyr::filter(p.value <= 0.05)
+                    
+                    fish_biomass_substrate_models %>%
+                        mutate(coefs = purrr::map(tukey, tidy, conf.int = F)) %>% 
+                        unnest(coefs) %>%
+                        dplyr::filter(adj.p.value <= 0.05) %>%
+                        dplyr::select(c(Species_Code, contrast, adj.p.value))
            
             # by benthic habitat
                 
@@ -483,33 +576,59 @@
                 fish_biomass %>%
                     tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
                 
-                # Agat 
-                fish_biomass %>%
-                    filter(Unit == "Agat") %>%
-                    anova_test(weight ~ Dominant_Benthic_Habitat_Type)
                 
-                fish_biomass %>%
-                    filter(Unit == "Agat") %>%
-                    tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
-                
-                # Asan
-                fish_biomass %>%
-                    filter(Unit == "Asan") %>%
-                    anova_test(weight ~ Dominant_Benthic_Habitat_Type)
-                
-                fish_biomass %>%
-                    filter(Unit == "Asan") %>%
-                    tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                    # Agat 
+                    fish_biomass %>%
+                        filter(Unit == "Agat") %>%
+                        anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                    
+                    fish_biomass %>%
+                        filter(Unit == "Agat") %>%
+                        tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                    
+                    # Asan
+                    fish_biomass %>%
+                        filter(Unit == "Asan") %>%
+                        anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                    
+                    fish_biomass %>%
+                        filter(Unit == "Asan") %>%
+                        tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                    
+                    # between benthic habitats, species specific (i.e., which species weighed diff across benthic habitat types)
+                    fish_biomass_benthic_models = 
+                        fish_biomass %>%
+                        group_by(Species_Code) %>%
+                        dplyr::filter(n_distinct(Dominant_Benthic_Habitat_Type) >= 2) %>%
+                        group_by(Species_Code) %>%
+                        nest() %>%
+                        mutate(aov = map(data, ~aov(weight ~ Dominant_Benthic_Habitat_Type, 
+                                                    data = .x)),
+                               tukey = map(data, ~TukeyHSD(aov(weight ~ Dominant_Benthic_Habitat_Type, 
+                                                               data = .x))))
+                    
+                    fish_biomass_benthic_models %>%
+                        mutate(tidy_aov = map(aov, tidy), 
+                               glance_aov = map(aov, glance),
+                               augment_aov = map(aov, augment)) %>%
+                        unnest(tidy_aov) %>%
+                        dplyr::filter(p.value <= 0.05)
+                    
+                    fish_biomass_benthic_models %>%
+                        mutate(coefs = purrr::map(tukey, tidy, conf.int = F)) %>% 
+                        unnest(coefs) %>%
+                        dplyr::filter(adj.p.value <= 0.05) %>%
+                        dplyr::select(c(Species_Code, contrast, adj.p.value))
+                    
                 
         # difference in total lengths
             
             # between units
-            fish_biomass %>%
-                t_test(Total_Length ~ Unit)
+            fish_biomass %>% wilcox_test(Total_Length ~ Unit)
+            fish_biomass %>% wilcox_effsize(Total_Length ~ Unit)
             
             # by species
-            fish_biomass %>%
-                anova_test(Total_Length ~ Species_Code)
+            fish_biomass %>% anova_test(Total_Length ~ Species_Code)
             
             
     # difference in biomass by distance from shore/crest/freshwater? 
@@ -544,18 +663,19 @@
     output %>%
         group_by(Family) %>%
         tally(sort = T) %>%
-        mutate(prop = n/3190)
+        mutate(prop = n/3190, 
+               percent = prop*100)
     
     # frequency of different species
     output %>%
         group_by(Unit, Family, Taxon_Name) %>%
         tally(sort = T)
-    
-    viewer = 
+
     output %>%
-        filter(Unit == "Agat") %>%
-        group_by(Family, Taxon_Name) %>%
-        tally(sort = T)
+        group_by(Family, Taxon_Name, Unit) %>%
+        tally(sort = T) %>%
+        pivot_wider(names_from = Unit, values_from = n)
+    
     
     
 ## 8. NMDS (family level) ----

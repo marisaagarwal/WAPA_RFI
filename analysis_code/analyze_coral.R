@@ -33,6 +33,7 @@
             dplyr::summarise(mean_richness = mean(sp_richness),
                              se_richness = std.error(sp_richness))
         
+        
         # difference in richness by site? -> no
         coralsummary %>%
             t_test(sp_richness ~ Unit, var.equal = F)
@@ -49,12 +50,15 @@
         
 
         # difference in richness by distance from shore/crest/freshwater? 
-            # to shore
-            summary(lm(sp_richness ~ Shore_Dist, data = coralsummary))
-            # to crest
-            summary(lm(sp_richness ~ Crest_Dist, data = coralsummary))
-            # to freshwater output
-            summary(lm(sp_richness ~ Fresh_Dist, data = coralsummary))
+                # to shore
+                summary(lm(sp_richness ~ Shore_Dist, data = coralsummary))
+                # to crest
+                summary(lm(sp_richness ~ Crest_Dist, data = coralsummary))
+                # to freshwater output
+                summary(lm(sp_richness ~ Fresh_Dist, data = coralsummary))
+            # multiple linear regression
+            summary(lm(sp_richness ~ Shore_Dist + Fresh_Dist + Crest_Dist, data = coralsummary))
+            
             
         # difference in richness by substrate characterization (overall)? -> yes
         

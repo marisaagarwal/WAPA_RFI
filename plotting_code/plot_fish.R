@@ -17,20 +17,58 @@
         group_by(Substrate_Characterization) %>%
         dplyr::summarise(mean_richness = mean(sp_richness), 
                          se_richness = std.error(sp_richness)) %>%
-        ggplot(aes(x = Substrate_Characterization, y = mean_richness)) +
-        geom_col() +
-        geom_errorbar(aes(ymin = mean_richness-se_richness, 
-                          ymax = mean_richness+se_richness))
+        mutate(Substrate_Characterization = recode(Substrate_Characterization, 
+                                                   AggregatePatchReef = "Aggregate Patch \n Reef",
+                                                   AggregateReef = "Aggregate Reef",
+                                                   ReefRubble = "Reef Rubble",
+                                                   RockBoulder = "Rock Boulder",
+                                                   SandScatteredCoral = "Sand Scattered \n Coral",
+                                                   SandScatteredRock = "Sand Scattered \n Rock" )) %>%
+        ggplot(aes(x = reorder(Substrate_Characterization, mean_richness), y = mean_richness, 
+                   fill = Substrate_Characterization)) +
+            geom_col() +
+            scale_fill_flat_d() +
+            geom_errorbar(aes(ymin = mean_richness-se_richness, 
+                              ymax = mean_richness+se_richness, width = 0.5)) +
+            geom_signif(comparisons=list(c("Aggregate Patch \n Reef", "Pavement")), annotations="*",
+                         y_position = 35, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Aggregate Patch \n Reef", "Reef Rubble")), annotations="*",
+                         y_position = 38, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Aggregate Patch \n Reef", "Sand")), annotations="***",
+                        y_position = 32, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Sand Scattered \n Rock", "Sand")), annotations="*",
+                        y_position = 29, tip_length = 0.02, vjust=0.4) +
+            labs(x="Substrate Characterization", y="Mean Fish Richness (± Standard Error)") +
+            theme_pubr(legend = "none")
     
     # dominant benthic habitat type
     fishsummary %>%
         group_by(Dominant_Benthic_Habitat_Type) %>%
         dplyr::summarise(mean_richness = mean(sp_richness), 
                          se_richness = std.error(sp_richness)) %>%
-        ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_richness)) +
-        geom_col() +
-        geom_errorbar(aes(ymin = mean_richness-se_richness, 
-                          ymax = mean_richness+se_richness))
+        mutate(Dominant_Benthic_Habitat_Type = recode(Dominant_Benthic_Habitat_Type, 
+                                                   AggregatePatchReef = "Aggregate Patch \n Reef",
+                                                   AggregateReef = "Aggregate Reef",
+                                                   ReefRubble = "Reef Rubble",
+                                                   RockBoulder = "Rock Boulder",
+                                                   SandScatteredCoral = "Sand Scattered \n Coral",
+                                                   SandScatteredRock = "Sand Scattered \n Rock" )) %>%
+        ggplot(aes(x = reorder(Dominant_Benthic_Habitat_Type, mean_richness), y = mean_richness, 
+                   fill = Dominant_Benthic_Habitat_Type)) +
+            geom_col() +
+            scale_fill_flat_d() +
+            geom_errorbar(aes(ymin = mean_richness-se_richness, 
+                              ymax = mean_richness+se_richness, width = 0.5)) +
+            geom_signif(comparisons=list(c("Seagrass", "Turf")), annotations="**",
+                        y_position = 25, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Coral", "Seagrass")), annotations="***",
+                        y_position = 28, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Coral", "Uncolonized")), annotations="***",
+                        y_position = 31, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Coral", "Macroalgae")), annotations="*",
+                        y_position = 34, tip_length = 0.02, vjust=0.4) +
+            labs(x="Dominant Benthic Habitat Type", y="Mean Fish Richness (± Standard Error)") +
+            theme_pubr(legend = "none")
                       
      # distance from shore/crest/freshwater
      fishsummary %>%
@@ -49,26 +87,43 @@
      
      # substrate characterization
      fishsummary %>%
-         # filter(Unit == "Asan") %>%
          group_by(Substrate_Characterization) %>%
          dplyr::summarise(mean_density = mean(fish_density), 
                           se_density = std.error(fish_density)) %>%
-         ggplot(aes(x = Substrate_Characterization, y = mean_density)) +
+         mutate(Substrate_Characterization = recode(Substrate_Characterization, 
+                                                    AggregatePatchReef = "Aggregate Patch \n Reef",
+                                                    AggregateReef = "Aggregate Reef",
+                                                    ReefRubble = "Reef Rubble",
+                                                    RockBoulder = "Rock Boulder",
+                                                    SandScatteredCoral = "Sand Scattered \n Coral",
+                                                    SandScatteredRock = "Sand Scattered \n Rock" )) %>%
+         ggplot(aes(x = reorder(Substrate_Characterization, mean_density), y = mean_density, 
+                    fill = Substrate_Characterization)) +
              geom_col() +
-             geom_errorbar(aes(ymin = mean_density-se_density, 
-                               ymax = mean_density+se_density)) +
-             theme_light()
+             scale_fill_flat_d() +
+             geom_errorbar(aes(ymin = mean_density - se_density, 
+                               ymax = mean_density + se_density, width = 0.5)) +
+             labs(x="Substrate Characterization", y="Mean Fish Density (± Standard Error)") +
+             theme_pubr(legend = "none")
      
-     # dominant benthic habitat type
-     fishsummary %>%
-         group_by(Dominant_Benthic_Habitat_Type) %>%
-         dplyr::summarise(mean_density = mean(fish_density), 
+    # dominant benthic habitat type
+    fishsummary %>%
+        group_by(Dominant_Benthic_Habitat_Type) %>%
+        dplyr::summarise(mean_density = mean(fish_density), 
                           se_density = std.error(fish_density)) %>%
-         ggplot(aes(x = Dominant_Benthic_Habitat_Type, y = mean_density)) +
-         geom_col() +
-         geom_errorbar(aes(ymin = mean_density-se_density, 
-                           ymax = mean_density+se_density))
-     
+        ggplot(aes(x = reorder(Dominant_Benthic_Habitat_Type, mean_density), y = mean_density,
+                   fill = Dominant_Benthic_Habitat_Type)) +
+            geom_col() +
+            scale_fill_flat_d() +
+            geom_errorbar(aes(ymin = mean_density - se_density, 
+                              ymax = mean_density + se_density, width = 0.5)) +
+            geom_signif(comparisons=list(c("Seagrass", "Coral")), annotations="**",
+                         y_position = 3.1, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Macroalgae", "Seagrass")), annotations="*",
+                         y_position = 3.3, tip_length = 0.02, vjust=0.4) +
+            labs(x="Dominant Benthic Habitat Type", y="Mean Fish Density (± Standard Error)") +
+            theme_pubr(legend = "none")
+         
      # distance from shore/crest/freshwater
      fishsummary %>%
          ggplot() +
@@ -184,6 +239,37 @@
          # geom_jitter(alpha = 0.1) +
          geom_violin()+
          theme_light()
+     
+     fish_biomass %>%
+         group_by(Unit) %>%
+         summarise(mean_biomass = mean(weight), 
+                   se_biomass = std.error(weight)) %>%
+         ggplot(aes(x = Unit, y = mean_biomass, 
+                    fill = Unit)) +
+             geom_col(alpha = 0.8) +
+             scale_fill_viridis_d() +
+             geom_errorbar(aes(ymin = mean_biomass-se_biomass, 
+                               ymax = mean_biomass+se_biomass, width = 0.5)) +
+             geom_signif(comparisons=list(c("Asan", "Agat")), annotations="***",
+                         y_position = 13.7, tip_length = 0.02, vjust=0.4) +
+            scale_y_continuous(limits = c(0, 14), n.breaks = 6) + 
+             labs(x="WAPA Management Unit", y="Mean Individual Biomass (g)") +
+             theme_pubr(legend = "none")
+     
+     fish_biomass %>%
+         group_by(Unit) %>%
+         summarise(mean_TL = mean(Total_Length), 
+                   se_TL = std.error(Total_Length)) %>%
+         ggplot(aes(x = Unit, y = mean_TL, 
+                    fill = Unit)) +
+         geom_col(alpha = 0.8) +
+         scale_fill_viridis_d() +
+         geom_errorbar(aes(ymin = mean_TL-se_TL, 
+                           ymax = mean_TL+se_TL, width = 0.5)) +
+         geom_signif(comparisons=list(c("Asan", "Agat")), annotations="***",
+                     y_position = 8, tip_length = 0.02, vjust=0.4) +
+         labs(x="WAPA Management Unit", y="Mean Total Length (cm)") +
+         theme_pubr(legend = "none")
      
      
      # length vs. weight
