@@ -96,7 +96,12 @@
     common_broad_func_groups = 
         CoralNetannotations %>%
             group_by(Site, Functional_Group) %>%
-            dplyr::summarise(n_annotations = n())
+            dplyr::summarise(n_annotations = n()) %>%
+            ungroup() %>%
+            group_by(Site) %>%
+            mutate(total_annotations = sum(n_annotations), 
+                   prop_annotations = n_annotations / total_annotations, 
+                   percent_annotations = prop_annotations * 100)
          
     
 ## 4. Most common labels by dominant benthic habitat ----   
@@ -256,6 +261,655 @@
     summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, data = coral_cover))   
     
     
+## 8. Algae & seagrass  ----
     
+    # set up data 
     
+    algae_species = c("AMPH", "BOOD", "BRCA", "CARA", "CAUL", "CHFR", "DICT", "HALI", "MALG", "NESP", "PADN", "SARG", "TURB", "VALO")
+    seagrass_species = c("EACO", "HUNI", "HMIN")
     
+    algae_seagrass_data = 
+        merge(species_cover %>% rename(Unit = "Site"), metadata) %>%
+            dplyr::select(c("Unit", "Transect", "n_annotations", "Species_Code", "count", "percent_cover", 
+                            "Crest_Dist", "Shore_Dist", "Fresh_Dist", "Substrate_Characterization", "Dominant_Benthic_Habitat_Type")) %>%
+            filter(Species_Code %in% c(algae_species, seagrass_species))
+    
+    algae_seagrass_data %>%
+        group_by(Unit, Species_Code) %>%
+        summarise(sum_species = sum(count)) %>%
+        filter(Species_Code %in% algae_species)
+    
+    algae_seagrass_data %>%
+        group_by(Unit, Species_Code) %>%
+        summarise(sum_species = sum(count)) %>%
+        filter(Species_Code %in% seagrass_species)
+    
+    algae_seagrass_data = merge(algae_seagrass_data, CoralNetlabels)
+    
+    CoralNetannotations %>%
+        group_by(Site, Functional_Group) %>%
+        dplyr::summarise(n_annotations = n()) %>%
+        ungroup() %>%
+        group_by(Site) %>%
+        mutate(total_annotations = sum(n_annotations), 
+               prop_annotations = n_annotations / total_annotations, 
+               percent_annotations = prop_annotations * 100) %>%
+        filter(Functional_Group == "Seagrass")
+    
+
+    # SEAGRASS percent cover
+    
+        # summary
+        algae_seagrass_data %>%
+            group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+            summarise(cover = sum(count)) %>%
+            mutate(percent_cover = (cover / n_annotations) * 100) %>%
+            filter(Functional_Group == "Seagrass") %>%
+            group_by(Unit) %>%
+            summarise(mean_cover = mean(percent_cover), 
+                      se_cover = std.error(percent_cover))
+        
+        algae_seagrass_data %>%
+            group_by(Unit, Transect, Functional_Group, Taxon_Name) %>%
+            summarise(sum_species = sum(count)) %>%
+            filter(Functional_Group == "Seagrass") %>%
+            ungroup() %>%
+            mutate(total_seagrass_obs = sum(sum_species)) %>%
+            group_by(Taxon_Name, total_seagrass_obs) %>%
+            summarise(sum_species  = sum(sum_species)) %>%
+            mutate(prop_species = sum_species / total_seagrass_obs, 
+                   percent_species = prop_species * 100)
+        
+        # by unit
+    
+            # testing assumptions
+                # extreme outliers? 4 at Agat. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    group_by(Unit) %>%
+                    identify_outliers(percent_cover)
+                # normal? not at Agat. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    group_by(Unit) %>% 
+                    shapiro_test(percent_cover)
+                ggqqplot(algae_seagrass_data %>%
+                             group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                             summarise(cover = sum(count)) %>%
+                             mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                             filter(Functional_Group == "Seagrass") %>%
+                             ungroup(),
+                         x = "percent_cover", facet.by = "Unit")
+                # equal variances? yes. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    levene_test(percent_cover ~ Unit)
+    
+            # perform non-parametric test
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Seagrass") %>%
+                ungroup() %>%
+                wilcox_test(percent_cover ~ Unit)
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Seagrass") %>%
+                ungroup() %>%
+                wilcox_effsize(percent_cover ~ Unit)
+            
+        # by substrate type
+            
+            # testing assumptions --> NOT MET
+                # extreme outliers? none. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    group_by(Substrate_Characterization) %>% 
+                    identify_outliers(percent_cover)
+                # normal? not for two groups 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    filter(!Substrate_Characterization %in% c("AggregateReef", "Pavement", "SandScatteredCoral")) %>%
+                    group_by(Substrate_Characterization) %>% 
+                    shapiro_test(percent_cover)
+                ggqqplot(algae_seagrass_data %>%
+                             group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                             summarise(cover = sum(count)) %>%
+                             mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                             filter(Functional_Group == "Seagrass") %>%
+                             ungroup(),
+                         x = "percent_cover", facet.by = "Substrate_Characterization")
+                # equal variances? no.  
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    levene_test(percent_cover ~ Substrate_Characterization)
+                
+            # perform non-parametric test
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%                    filter(Functional_Group == "Seagrass") %>%
+                ungroup() %>% 
+                kruskal_test(percent_cover ~ Substrate_Characterization)
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%                    filter(Functional_Group == "Seagrass") %>%
+                ungroup() %>%
+                kruskal_effsize(percent_cover ~ Substrate_Characterization)
+                
+        # by dominant benthic habitat
+                
+            # testing assumptions --> NOT MET
+                # extreme outliers? 3.  
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>% 
+                    identify_outliers(percent_cover)
+                # normal? not for one group. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>% 
+                    shapiro_test(percent_cover)
+                ggqqplot(algae_seagrass_data %>%
+                             group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                             summarise(cover = sum(count)) %>%
+                             mutate(percent_cover = (cover / n_annotations) * 100) %>%                    filter(Functional_Group == "Seagrass") %>%
+                             ungroup(),
+                         x = "percent_cover", facet.by = "Dominant_Benthic_Habitat_Type")
+                # equal variances? no.  
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%                    filter(Functional_Group == "Seagrass") %>%
+                    ungroup() %>%
+                    levene_test(percent_cover ~ Dominant_Benthic_Habitat_Type)
+                
+            # perform non-parametric test
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Seagrass") %>%
+                ungroup() %>% 
+                kruskal_test(percent_cover ~ Dominant_Benthic_Habitat_Type)
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Seagrass") %>%
+                ungroup() %>%
+                kruskal_effsize(percent_cover ~ Dominant_Benthic_Habitat_Type)
+      
+        # by distance from freshwater/shore/reef crest
+        summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                   data = algae_seagrass_data %>%
+                           filter(Functional_Group == "Seagrass") %>%
+                           group_by(Unit, Transect, Functional_Group, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+                           summarise(n_points = sum(count)) %>%
+                           mutate(percent_cover = (n_points / n_annotations) * 100)))    
+            
+    # ALGAE OVERALL percent cover
+                
+        # summary 
+        algae_seagrass_data %>%
+            group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+            summarise(cover = sum(count)) %>%
+            mutate(percent_cover = (cover / n_annotations) * 100) %>%
+            filter(Functional_Group == "Algae") %>%
+            group_by(Unit, Functional_Group) %>%
+            summarise(mean_cover = mean(percent_cover), 
+                      se_cover = std.error(percent_cover))
+                
+        algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Taxon_Name) %>%
+                summarise(sum_species = sum(count)) %>%
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>%
+                mutate(total_algae_obs = sum(sum_species)) %>%
+                group_by(Taxon_Name, total_algae_obs) %>%
+                summarise(sum_species  = sum(sum_species)) %>%
+                mutate(prop_species = sum_species / total_algae_obs, 
+                       percent_species = prop_species * 100)
+                
+        # by unit
+                
+            # testing assumptions
+                # extreme outliers? none. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    group_by(Unit) %>%
+                    identify_outliers(percent_cover)
+                # normal? not at asan. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    group_by(Unit) %>% 
+                    shapiro_test(percent_cover)
+                ggqqplot(algae_seagrass_data %>%
+                             group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                             summarise(cover = sum(count)) %>%
+                             mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                             filter(Functional_Group == "Algae") %>%
+                             ungroup(),
+                         x = "percent_cover", facet.by = "Unit")
+                # equal variances? yes. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    levene_test(percent_cover ~ Unit)
+                
+            # perform non-parametric test
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>%
+                wilcox_test(percent_cover ~ Unit)
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>%
+                wilcox_effsize(percent_cover ~ Unit)
+                
+        # by substrate type
+                
+            # testing assumptions
+                # extreme outliers? 2 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    group_by(Substrate_Characterization) %>% 
+                    identify_outliers(percent_cover)
+                # normal? not for one group 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    filter(!Substrate_Characterization %in% c("AggregateReef", "RockBoulder")) %>%
+                    group_by(Substrate_Characterization) %>% 
+                    shapiro_test(percent_cover)
+                ggqqplot(algae_seagrass_data %>%
+                             group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                             summarise(cover = sum(count)) %>%
+                             mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                             filter(Functional_Group == "Algae") %>%
+                             ungroup(),
+                         x = "percent_cover", facet.by = "Substrate_Characterization")
+                # equal variances? yes.  
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    levene_test(percent_cover ~ Substrate_Characterization)
+                
+            # perform non-parametric test
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%                    
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>% 
+                kruskal_test(percent_cover ~ Substrate_Characterization)
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Substrate_Characterization, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%                    
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>%
+                kruskal_effsize(percent_cover ~ Substrate_Characterization)
+                
+        # by dominant benthic habitat
+                
+            # testing assumptions --> NOT MET
+                # extreme outliers? 1.  
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%        
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>% 
+                    identify_outliers(percent_cover)
+                # normal? not for one group. 
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%       
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>% 
+                    shapiro_test(percent_cover)
+                ggqqplot(algae_seagrass_data %>%
+                             group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                             summarise(cover = sum(count)) %>%
+                             mutate(percent_cover = (cover / n_annotations) * 100) %>%     
+                             filter(Functional_Group == "Algae") %>%
+                             ungroup(),
+                         x = "percent_cover", facet.by = "Dominant_Benthic_Habitat_Type")
+                # equal variances? yes.  
+                algae_seagrass_data %>%
+                    group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                    summarise(cover = sum(count)) %>%
+                    mutate(percent_cover = (cover / n_annotations) * 100) %>%    
+                    filter(Functional_Group == "Algae") %>%
+                    ungroup() %>%
+                    levene_test(percent_cover ~ Dominant_Benthic_Habitat_Type)
+                
+            # perform non-parametric test
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>% 
+                kruskal_test(percent_cover ~ Dominant_Benthic_Habitat_Type)
+            
+            algae_seagrass_data %>%
+                group_by(Unit, Transect, Functional_Group, Dominant_Benthic_Habitat_Type, n_annotations) %>%
+                summarise(cover = sum(count)) %>%
+                mutate(percent_cover = (cover / n_annotations) * 100) %>%
+                filter(Functional_Group == "Algae") %>%
+                ungroup() %>%
+                kruskal_effsize(percent_cover ~ Dominant_Benthic_Habitat_Type)
+                
+
+    # ALGAE FUNCTIONAL GROUP percent cover
+            
+        # summary 
+        algae_seagrass_data %>%
+            filter(Functional_Group == "Algae") %>%
+            group_by(Unit, Transect, Detailed_Func_Group, n_annotations) %>%
+            summarise(n_points = sum(count)) %>%
+            mutate(percent_cover = (n_points / n_annotations) * 100) %>%
+            group_by(Unit, Detailed_Func_Group) %>%
+            summarise(mean_cover = mean(percent_cover), 
+                      se_cover = std.error(percent_cover))
+    
+        algae_seagrass_data %>%
+            group_by(Unit, Transect, Functional_Group, Detailed_Func_Group) %>%
+            summarise(sum_species = sum(count)) %>%
+            filter(Functional_Group == "Algae") %>%
+            ungroup() %>%
+            mutate(total_algae_obs = sum(sum_species)) %>%
+            group_by(Detailed_Func_Group, total_algae_obs) %>%
+            summarise(sum_species  = sum(sum_species)) %>%
+            mutate(prop_species = sum_species / total_algae_obs, 
+                   percent_species = prop_species * 100)        
+           
+        # within each unit
+        algae_seagrass_data %>%
+            filter(Functional_Group == "Algae") %>%
+            group_by(Unit, Transect, Detailed_Func_Group, n_annotations) %>%
+            summarise(n_points = sum(count)) %>%
+            group_by(Unit) %>%
+            nest() %>%
+            mutate(kruskal_test = map(data, 
+                                      ~kruskal.test(n_points ~ Detailed_Func_Group, data = .x)),
+                   kruskal_effsize = map(data, 
+                                         ~kruskal_effsize(n_points ~ Detailed_Func_Group, data = .x))) %>%
+            mutate(tidy_kruskal = map(kruskal_test, tidy)) %>%
+            # unnest(tidy_kruskal)
+            mutate(dunn_test = map(data, 
+                                   ~dunn_test(n_points ~ Detailed_Func_Group, data = .x)))
+            
+        # between units
+        algae_seagrass_data %>%
+            filter(Functional_Group == "Algae") %>%
+            group_by(Unit, Transect, Detailed_Func_Group, n_annotations) %>%
+            summarise(n_points = sum(count)) %>%
+            mutate(percent_cover = (n_points / n_annotations) * 100) %>%
+            filter(!Detailed_Func_Group == "Golden Algae") %>%
+            ungroup() %>%
+            group_by(Detailed_Func_Group) %>%
+            nest() %>%
+            mutate(wilcox_test = map(data, 
+                                     ~wilcox_test(percent_cover ~ Unit, data = .x)),
+                   wilcox_effsize = map(data, 
+                                        ~wilcox_effsize(percent_cover ~ Unit, data = .x)))  
+
+        # by substrate type
+        
+            # golden algae  
+            golden_substrate = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Substrate_Characterization, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Substrate_Characterization) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Golden Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(golden_substrate), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(golden_substrate), simulate.p.value = T)
+        
+            # red algae  
+            red_substrate = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Substrate_Characterization, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Substrate_Characterization) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Red Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(red_substrate), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(red_substrate), simulate.p.value = T)
+            
+            # green algae  
+            green_substrate = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Substrate_Characterization, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Substrate_Characterization) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Green Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(green_substrate), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(green_substrate), simulate.p.value = T)
+            
+            # brown algae  
+            brown_substrate = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Substrate_Characterization, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Substrate_Characterization) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Brown Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(brown_substrate), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(brown_substrate), simulate.p.value = T)
+            
+        # by dominant benthic habitat
+            
+            # golden algae  
+            golden_benthic = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Dominant_Benthic_Habitat_Type, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Dominant_Benthic_Habitat_Type) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Golden Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(golden_benthic), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(golden_benthic), simulate.p.value = T)
+            
+            # red algae  
+            red_benthic = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Dominant_Benthic_Habitat_Type, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Dominant_Benthic_Habitat_Type) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Red Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(red_benthic), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(red_benthic), simulate.p.value = T)
+            
+            # green algae  
+            green_benthic = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Dominant_Benthic_Habitat_Type, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Dominant_Benthic_Habitat_Type) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Green Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(green_benthic), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(green_benthic), simulate.p.value = T)
+            
+            # brown algae  
+            brown_benthic = 
+                algae_seagrass_data %>%
+                filter(Functional_Group == "Algae") %>%
+                group_by(Dominant_Benthic_Habitat_Type, Detailed_Func_Group) %>%
+                summarise(n_points = sum(count)) %>%
+                ungroup() %>%
+                group_by(Dominant_Benthic_Habitat_Type) %>%
+                mutate(total_points = sum(n_points),
+                       n_nonpoints = total_points - n_points) %>%
+                ungroup() %>%
+                filter(Detailed_Func_Group == "Brown Algae") %>%
+                dplyr::select(c(n_points, n_nonpoints))
+            
+            fisher.test(as.data.table(brown_benthic), simulate.p.value = T)
+            pairwise_fisher_test(as.data.table(brown_benthic), simulate.p.value = T)
+            
+        # with distance from shore/freshwater/crest
+        algae_seagrass_data %>%
+            filter(Functional_Group == "Algae") %>%
+            group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+            summarise(n_points = sum(count)) %>%
+            mutate(percent_cover = (n_points / n_annotations) * 100)
+            
+            # overall
+            summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = algae_seagrass_data %>%
+                           filter(Functional_Group == "Algae") %>%
+                           group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+                           summarise(n_points = sum(count)) %>%
+                           mutate(percent_cover = (n_points / n_annotations) * 100)))
+            
+            # for golden algae
+            summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = algae_seagrass_data %>%
+                               filter(Functional_Group == "Algae") %>%
+                               group_by(Unit, Transect, Detailed_Func_Group, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+                               summarise(n_points = sum(count)) %>%
+                               mutate(percent_cover = (n_points / n_annotations) * 100)  %>%
+                               filter(!Detailed_Func_Group == "Golden Algae")))
+            
+            # for green algae
+            summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = algae_seagrass_data %>%
+                           filter(Functional_Group == "Algae") %>%
+                           group_by(Unit, Transect, Detailed_Func_Group, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+                           summarise(n_points = sum(count)) %>%
+                           mutate(percent_cover = (n_points / n_annotations) * 100)  %>%
+                           filter(!Detailed_Func_Group == "Green Algae")))
+            
+            # for red algae
+            summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = algae_seagrass_data %>%
+                           filter(Functional_Group == "Algae") %>%
+                           group_by(Unit, Transect, Detailed_Func_Group, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+                           summarise(n_points = sum(count)) %>%
+                           mutate(percent_cover = (n_points / n_annotations) * 100)  %>%
+                           filter(!Detailed_Func_Group == "Red Algae")))
+            
+            # for brown algae
+            summary(lm(percent_cover ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = algae_seagrass_data %>%
+                           filter(Functional_Group == "Algae") %>%
+                           group_by(Unit, Transect, Detailed_Func_Group, Crest_Dist, Shore_Dist, Fresh_Dist, n_annotations) %>%
+                           summarise(n_points = sum(count)) %>%
+                           mutate(percent_cover = (n_points / n_annotations) * 100)  %>%
+                           filter(!Detailed_Func_Group == "Brown Algae")))
+            
+            
