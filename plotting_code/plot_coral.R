@@ -90,28 +90,42 @@
     find_hull = function(plotting_coralNMDS) plotting_coralNMDS[chull(plotting_coralNMDS$NMDS1, plotting_coralNMDS$NMDS2), ]
     hulls = ddply(plotting_coralNMDS, "Dominant_Benthic_Habitat_Type", find_hull)
     
+    # ggplot() +
+    #     geom_point(data = plotting_coralNMDS,
+    #                aes(x = NMDS1, y = NMDS2, color = Dominant_Benthic_Habitat_Type)) +
+    #     geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2,
+    #                                    fill = Dominant_Benthic_Habitat_Type,
+    #                                    color = Dominant_Benthic_Habitat_Type),
+    #                  alpha = 0.15) +
+    #     scale_fill_flat_d() +
+    #     scale_color_flat_d() +
+    #     geom_segment(data = significant_coral_species_scores,
+    #                  aes(x = 0, xend=NMDS1, y=0, yend=NMDS2),
+    #                  arrow = arrow(length = unit(0.25, "cm")),
+    #                  colour = "grey10",
+    #                  lwd = 0.3) +                                               # add vector arrows of significant species
+    #     ggrepel::geom_text_repel(data = significant_coral_species_scores,
+    #                              aes(x=NMDS1, y=NMDS2,
+    #                                  label = abrev),
+    #                              cex = 3,
+    #                              direction = "both",
+    #                                  segment.size = 0.25) +                          # add labels for species
+    #     labs(color= "Dominant Benthic Habitat Type", fill = "Dominant Benthic Habitat Type") +
+    #     theme_pubr(legend = "right")
+    
     ggplot() +
         geom_point(data = plotting_coralNMDS, 
                    aes(x = NMDS1, y = NMDS2, color = Dominant_Benthic_Habitat_Type)) +
         geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, 
                                        fill = Dominant_Benthic_Habitat_Type, 
                                        color = Dominant_Benthic_Habitat_Type),
-                     alpha = 0.15) +
-        scale_fill_flat_d() +
+                     alpha = 0.3) +
         scale_color_flat_d() +
-        # geom_segment(data = significant_coral_species_scores,
-        #              aes(x = 0, xend=NMDS1, y=0, yend=NMDS2),
-        #              arrow = arrow(length = unit(0.25, "cm")),
-        #              colour = "grey10", 
-        #              lwd = 0.3) +                                               # add vector arrows of significant species
-        # ggrepel::geom_text_repel(data = significant_coral_species_scores, 
-        #                          aes(x=NMDS1, y=NMDS2, 
-        #                              label = abrev),
-        #                          cex = 3, 
-        #                          direction = "both", 
-        #                          segment.size = 0.25) +                          # add labels for species
-        labs(color= "Dominant Benthic Habitat Type", fill = "Dominant Benthic Habitat Type") +
-        theme_pubr(legend = "right") 
+        scale_fill_flat_d() +
+        theme_bw() +
+        labs_pubr() +
+        rremove("grid") +
+        labs(fill = "Dominant Benthic Habitat Type", color = "Dominant Benthic Habitat Type")
     
 
 ## 3. Plot species richness ----
@@ -153,7 +167,7 @@
                               ymax = mean_richness+se_richness, width = 0.5)) +
             geom_signif(comparisons=list(c("Seagrass", "Coral")), annotations="***",
                         y_position = 6.5, tip_length = 0.02, vjust=0.4) +
-            geom_signif(comparisons=list(c("Uncolonized", "Coral")), annotations="*",
+            geom_signif(comparisons=list(c("Uncolonized", "Coral")), annotations="**",
                         y_position = 7.2, tip_length = 0.02, vjust=0.4) +
             labs(x="Dominant Benthic Habitat Type", y="Mean Coral Richness (± Standard Error)") +
             theme_pubr(legend = "none")
@@ -177,8 +191,6 @@
                  color = "Distance from:", fill = "Distance from:") +
             scale_x_continuous(limits = c(0, 1250)) +
             theme_pubr()
-    
-    
     
                      
 ## 4. Plot coral density ----
@@ -234,7 +246,7 @@
                                     Crest_Dist = "Reef Crest")) %>%
         ggplot(aes(x = Distance, y = coral_density, color = Type, fill = Type)) +
             geom_point(alpha = 0.4) +
-            geom_smooth(data = . %>% filter(!Type %in% c("Freshwater Source", "Shore")),
+            geom_smooth(data = . %>% filter(!Type == "Shore"),
                         method = "lm") +
             scale_color_manual(values = c("pink",  "orange", "blue")) +
             scale_fill_manual(values = c("pink", "orange", "blue")) +
@@ -243,7 +255,6 @@
             scale_x_continuous(limits = c(0, 1000)) +
             theme_pubr()
     
-    expression(paste("x axis ", ring(A)^2))
     
     
 ## 5. Plot NMDS (genus level) ----
@@ -410,20 +421,20 @@
                   se_cover = std.error(percent_cover)) %>%
         ggplot(aes(x = reorder(Dominant_Benthic_Habitat_Type, mean_cover), y = mean_cover,
                    fill = Dominant_Benthic_Habitat_Type)) +
-        geom_col() +
-        scale_fill_flat_d() +
-        geom_errorbar(aes(ymin = mean_cover-se_cover, 
-                          ymax = mean_cover+se_cover, width = 0.5)) +
-        geom_signif(comparisons=list(c("Seagrass", "Coral")), annotations="***",
-                    y_position = 29, tip_length = 0.02, vjust=0.4) +
-        geom_signif(comparisons=list(c("Uncolonized", "Coral")), annotations="**",
-                    y_position = 35, tip_length = 0.02, vjust=0.4) +
-        geom_signif(comparisons=list(c("Macroalgae", "Coral")), annotations="*",
-                    y_position = 38, tip_length = 0.02, vjust=0.4) +
-        geom_signif(comparisons=list(c("Seagrass", "Turf")), annotations="*",
-                    y_position = 32, tip_length = 0.02, vjust=0.4) +
-        labs(x="Dominant Benthic Habitat Type", y="Mean Coral Cover (± Standard Error)") +
-        theme_pubr(legend = "none")
+            geom_col() +
+            scale_fill_flat_d() +
+            geom_errorbar(aes(ymin = mean_cover-se_cover, 
+                              ymax = mean_cover+se_cover, width = 0.5)) +
+            geom_signif(comparisons=list(c("Seagrass", "Coral")), annotations="***",
+                        y_position = 29, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Uncolonized", "Coral")), annotations="**",
+                        y_position = 35, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Macroalgae", "Coral")), annotations="*",
+                        y_position = 38, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Seagrass", "Turf")), annotations="*",
+                        y_position = 32, tip_length = 0.02, vjust=0.4) +
+            labs(x="Dominant Benthic Habitat Type", y="Mean Coral Cover (± Standard Error)") +
+            theme_pubr(legend = "none")
     
     
     
