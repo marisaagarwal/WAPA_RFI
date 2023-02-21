@@ -20,7 +20,12 @@
             filter(!count == 0) %>%
             group_by(Unit, Transect) %>%
             dplyr::summarise(sp_richness = length(unique(species_code))) %>%
-            mutate(unit_transect = paste(Unit, "_", Transect))
+            ungroup() %>%
+                add_row(Unit = "Asan", Transect = 22, sp_richness = 0) %>%
+                add_row(Unit = "Agat", Transect = 2, sp_richness = 0) %>%
+                add_row(Unit = "Agat", Transect = 11, sp_richness = 0) %>%
+                add_row(Unit = "Agat", Transect = 15, sp_richness = 0) %>%
+                mutate(unit_transect = paste(Unit, "_", Transect))
     
     # combining metadata & diversity
     coralsummary = merge(metadata, coral_diversity) 
@@ -80,7 +85,7 @@
             
             coralsummary %>% kruskal_test(sp_richness ~ Substrate_Characterization)
             coralsummary %>% kruskal_effsize(sp_richness ~ Substrate_Characterization)
-            coralsummary %>% dunn_test(sp_richness ~ Substrate_Characterization)
+            coralsummary %>% dunn_test(sp_richness ~ Substrate_Characterization) %>% filter(p.adj<= 0.05)
         
         # difference in richness by substrate characterization (for each unit)? -> yes, only Agat
             # Asan
@@ -115,8 +120,7 @@
             
             coralsummary %>% kruskal_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
             coralsummary %>% kruskal_effsize(sp_richness ~ Dominant_Benthic_Habitat_Type)
-            coralsummary %>% dunn_test(sp_richness ~ Dominant_Benthic_Habitat_Type)
-            
+            coralsummary %>% dunn_test(sp_richness ~ Dominant_Benthic_Habitat_Type) 
             
         # difference in richness by benthic habitat type (for each unit)? -> yes, only Asan
             # Asan
@@ -136,11 +140,16 @@
     
 ## 4. NMDS (species level) ----
         
-        # set up data        
-        vegan_coralNMDS_data = 
-            merge(coralsummary %>%
-                      dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)),
-                  coralNMDSdata)
+        # set up data  
+            
+            # remove transects that don't have any corals at all
+            coralNMDSdata = coralNMDSdata[rowSums(coralNMDSdata[,3:ncol(coralNMDSdata)])>0,]
+            
+            # vegan-ify    
+            vegan_coralNMDS_data = 
+                merge(coralsummary %>%
+                          dplyr::select(c(Unit, Transect, Substrate_Characterization, Dominant_Benthic_Habitat_Type)),
+                      coralNMDSdata)
         
         # conduct NMDS 
         coralNMDS_object = metaMDS(vegan_coralNMDS_data[,5:ncol(vegan_coralNMDS_data)], 
@@ -221,9 +230,11 @@
                                                 pval <= 0.05)                          #subset data to show environmental factors significant at 0.05
         
         
-## 5. PERMANOVA of NMDS (species level) ----
+## 5. perMANOVA of NMDS (species level) ----
         
-    # difference in coral community based on Unit? no. Substrate characterization? no. Benthic habitat? yes. 
+    # difference in coral community based on: Unit? no. 
+    #                                         Substrate characterization? no. 
+    #                                         Benthic habitat? yes. 
         
         # assumptions: do groups have homogeneous variances? 
         dis = vegdist(vegan_coralNMDS_data[,5:ncol(vegan_coralNMDS_data)], method="bray")
@@ -238,7 +249,15 @@
             plot(mod)
         
         #test
-        adonis2(vegan_coralNMDS_data[,5:ncol(vegan_coralNMDS_data)] ~ Unit+Dominant_Benthic_Habitat_Type+Substrate_Characterization,
+        adonis2(vegan_coralNMDS_data[,5:ncol(vegan_coralNMDS_data)] ~ Unit,
+                data = reference_coralNMDS, 
+                permutations = 9999,
+                method = "bray")
+        adonis2(vegan_coralNMDS_data[,5:ncol(vegan_coralNMDS_data)] ~ Substrate_Characterization,
+                data = reference_coralNMDS, 
+                permutations = 9999,
+                method = "bray")
+        adonis2(vegan_coralNMDS_data[,5:ncol(vegan_coralNMDS_data)] ~ Dominant_Benthic_Habitat_Type,
                 data = reference_coralNMDS, 
                 permutations = 9999,
                 method = "bray")
@@ -341,7 +360,7 @@
                                               pval <= 0.05)                          #subset data to show environmental factors significant at 0.05
         
         
-## 7. PERMANOVA of NMDS (genus level) ----   
+## 7. perMANOVA of NMDS (genus level) ----   
         
     # difference in coral community based on Unit? no. Substrate? yes. Benthic Habitat? yes.  
         
@@ -358,10 +377,19 @@
             plot(mod)
             
         # test 
-        adonis2(vegan_coralNMDS_data_genus[,5:ncol(vegan_coralNMDS_data_genus)] ~ Unit+Substrate_Characterization+Dominant_Benthic_Habitat_Type , 
+        adonis2(vegan_coralNMDS_data_genus[,5:ncol(vegan_coralNMDS_data_genus)] ~ Unit, 
                 data = reference_coralNMDS_genus, 
                 permutations = 9999,
-                method = "bray")                     
+                method = "bray")
+        adonis2(vegan_coralNMDS_data_genus[,5:ncol(vegan_coralNMDS_data_genus)] ~ Substrate_Characterization, 
+                data = reference_coralNMDS_genus, 
+                permutations = 9999,
+                method = "bray")
+        adonis2(vegan_coralNMDS_data_genus[,5:ncol(vegan_coralNMDS_data_genus)] ~ Dominant_Benthic_Habitat_Type, 
+                data = reference_coralNMDS_genus, 
+                permutations = 9999,
+                method = "bray")
+        
         
        
 ## 8. Coral Density ----
@@ -459,13 +487,16 @@
             filter(Unit == "Agat") %>%
             anova_test(coral_density ~ Dominant_Benthic_Habitat_Type)
         
-        # difference in density by distance from shore/crest/freshwater? 
-        # to shore
-        summary(lm(coral_density ~ Shore_Dist, data = coralsummary))
-        # to crest
-        summary(lm(coral_density ~ Crest_Dist, data = coralsummary))
-        # to freshwater output
-        summary(lm(coral_density ~ Fresh_Dist, data = coralsummary))              
+        
+    # difference in density by distance from shore/crest/freshwater? 
+            # to shore
+            summary(lm(coral_density ~ Shore_Dist, data = coralsummary))
+            # to crest
+            summary(lm(coral_density ~ Crest_Dist, data = coralsummary))
+            # to freshwater output
+            summary(lm(coral_density ~ Fresh_Dist, data = coralsummary))  
+        # multiple linear regression
+        summary(lm(coral_density ~ Shore_Dist + Fresh_Dist + Crest_Dist, data = coralsummary))
         
     
     
