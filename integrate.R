@@ -41,7 +41,7 @@
     library(tidyverse)
     library(see)
     library(broom)
-    
+
     # for importing different formats
     library(readr)
     library(readxl)
@@ -67,6 +67,7 @@
     library(plotrix)
     library(multcompView)
     library(ggpubr)
+    library(ggforce)
 
 
 ## 3. Generate data objects
