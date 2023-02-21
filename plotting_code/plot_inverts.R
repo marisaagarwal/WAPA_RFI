@@ -33,6 +33,8 @@
     # sea urchins
     
     
+    # sea stars --> not applicable bc only two species so not very informative
+    
 
 ## 3. Density ----
     
@@ -55,8 +57,34 @@
             labs(x="WAPA Management Unit", y= "Mean Holothurian Density") +
             theme_pubr(legend = "none")
     
+    invert_data %>%
+        filter(Group == "Sea Cucumbers") %>%
+        group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type, Shore_Dist, Crest_Dist, Fresh_Dist) %>%
+        summarise(cucumber_density = n() / 50) %>%
+        ungroup() %>%
+        pivot_longer(cols = c(Shore_Dist, Crest_Dist, Fresh_Dist), 
+                     names_to = "Type", 
+                     values_to = "Distance") %>%
+        dplyr::mutate(Type = recode(Type, 
+                                    Fresh_Dist = "Freshwater Source", 
+                                    Shore_Dist = "Shore", 
+                                    Crest_Dist = "Reef Crest")) %>%
+        ggplot(aes(x = Distance, y = cucumber_density, color = Type, fill = Type)) +
+            geom_point(alpha = 0.4) +
+            geom_smooth(data = . %>% filter(!Type %in% c("Freshwater Source", "Shore")),
+                        method = "lm") +
+            scale_color_manual(values = c("pink",  "orange", "blue")) +
+            scale_fill_manual(values = c("pink", "orange", "blue")) +
+            labs(x = "Distance (m)", y = "Holothurian Density", 
+                 color = "Distance from:", fill = "Distance from:") +
+            scale_x_continuous(limits = c(0, 1250)) +
+            theme_pubr()
+    
+    
     # sea urchins
     
+    
+    # sea stars
     
 
 ## 4. Size ----
@@ -160,8 +188,72 @@
             labs(x = "Dominant Benthic Habitat Type", y = "Mean Holothurian Length (cm)") +
             theme_pubr(legend = "none")
     
+    invert_data %>%
+        filter(Group == "Sea Cucumbers") %>%
+        pivot_longer(cols = c(Shore_Dist, Crest_Dist, Fresh_Dist), 
+                     names_to = "Type", 
+                     values_to = "Distance") %>%
+        dplyr::mutate(Type = recode(Type, 
+                                    Fresh_Dist = "Freshwater Source", 
+                                    Shore_Dist = "Shore", 
+                                    Crest_Dist = "Reef Crest")) %>%
+        ggplot(aes(x = Distance, y = Size, color = Type, fill = Type)) +
+            geom_point(alpha = 0.4) +
+            geom_smooth(data = . %>% filter(!Type %in% c("Reef Crest", "Shore")),
+                        method = "lm") +
+            scale_color_manual(values = c("pink",  "orange", "blue")) +
+            scale_fill_manual(values = c("pink", "orange", "blue")) +
+            labs(x = "Distance (m)", y = "Holothurian Length (cm)", 
+                 color = "Distance from:", fill = "Distance from:") +
+            scale_x_continuous(limits = c(0, 1250)) +
+            theme_pubr()
+
+    # sea urchins
     
     
+    # sea stars
+    invert_data %>%
+        filter(Group == "Sea Stars") %>%
+        group_by(Substrate_Characterization) %>%
+        summarise(mean_length = mean(Size),
+                  se_length = std.error(Size)) %>%
+        mutate(Substrate_Characterization = recode(Substrate_Characterization, 
+                                                   AggregatePatchReef = "Aggregate Patch \n Reef",
+                                                   AggregateReef = "Aggregate Reef",
+                                                   ReefRubble = "Reef Rubble",
+                                                   RockBoulder = "Rock Boulder",
+                                                   SandScatteredCoral = "Sand Scattered \n Coral",
+                                                   SandScatteredRock = "Sand Scattered \n Rock" )) %>%
+        ggplot(aes(x = reorder(Substrate_Characterization, mean_length), y = mean_length, 
+                   fill = Substrate_Characterization)) +
+            geom_col() +
+            scale_fill_flat_d() +
+            geom_errorbar(aes(ymin = mean_length-se_length, 
+                              ymax = mean_length+se_length, width = 0.5)) +
+            geom_signif(comparisons=list(c("Pavement", "Reef Rubble")), annotations="*",
+                        y_position = 11.5, tip_length = 0.02, vjust=0.4) +
+            labs(x="Substrate Characterization", y="Mean Asteroidean Radial Length (cm)") +
+            theme_pubr(legend = "none")
+    
+    invert_data %>%
+        filter(Group == "Sea Stars") %>%
+        pivot_longer(cols = c(Shore_Dist, Crest_Dist, Fresh_Dist), 
+                     names_to = "Type", 
+                     values_to = "Distance") %>%
+        dplyr::mutate(Type = recode(Type, 
+                                    Fresh_Dist = "Freshwater Source", 
+                                    Shore_Dist = "Shore", 
+                                    Crest_Dist = "Reef Crest")) %>%
+        ggplot(aes(x = Distance, y = Size, color = Type, fill = Type)) +
+            geom_point(alpha = 0.4) +
+            geom_smooth(data = . %>% filter(!Type %in% c("Reef Crest", "Shore")),
+                        method = "lm") +
+            scale_color_manual(values = c("pink",  "orange", "blue")) +
+            scale_fill_manual(values = c("pink", "orange", "blue")) +
+            labs(x = "Distance (m)", y = "Asteroidean Radial Length (cm)", 
+                 color = "Distance from:", fill = "Distance from:") +
+            scale_x_continuous(limits = c(0, 1250)) +
+            theme_pubr()
     
     
     
