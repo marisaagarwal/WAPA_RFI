@@ -1,6 +1,6 @@
 # 2022-11-09
 
-## 1. Set up
+## 1. Set up ----
 
     # point to data locale
     data_locale = "data/"
@@ -8,6 +8,7 @@
     # point to data file
     data_file1 = "RFI_metadata.xlsx"
     data_file2 = "RFI_fish.xlsx"
+    data_file3 = "RFI_fishfeeding.xlsx"
     
     # call to data
     metadata = 
@@ -22,9 +23,13 @@
     fishcodes = 
         paste0(data_locale, data_file2) %>%
         read_excel(sheet = "Species Codes")
+    
+    fishfeeding = 
+        paste0(data_locale, data_file3) %>%
+        read_excel()
 
 
-## 2. Data grooming
+## 2. Data grooming ----
     
     # ADD LEHA to fishcodes
     fishcodes %<>%
@@ -32,7 +37,7 @@
                 Species_Code = "LEHA", A_value = 0.0281, B_value = 2.89)
     
     
-## 3. Create vegan/NMDS data
+## 3. Create vegan/NMDS data ----
     
     fishNMDSdata =  
         fishdata %>% 
@@ -42,8 +47,17 @@
             pivot_wider(names_from = "Species", values_from = "count", values_fill = 0)
             
             
-            
-        
+## 4. Add trophic data ----
+    
+    # to fishcodes
+    fishcodes = merge(fishcodes, fishfeeding)
+
+    # add trophic info to dataset
+    fishdiets = merge(fishdata %>% rename("Species_Code" = Species), fishcodes) 
+    fishdiets = merge(fishdiets, metadata)
+    
+    
+    
         
         
         

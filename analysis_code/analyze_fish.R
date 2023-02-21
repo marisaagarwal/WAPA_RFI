@@ -16,7 +16,10 @@
         fishdata %>%
             group_by(Unit, Transect) %>%
             summarise(sp_richness = length(unique(Species))) %>%
+            ungroup() %>%
+            add_row(Unit = "Asan", Transect = 19, sp_richness = 0) %>%
             mutate(unit_transect = paste(Unit, "_", Transect))
+            
 
     #combining metadata and diversity
     fishsummary = merge(metadata, fish_diversity)
@@ -51,15 +54,18 @@
                 # effect size
                 effectsize(t.test(sp_richness ~ Unit, data = fishsummary))
                 
-        
+                
         # difference in richness by distance from shore/crest/freshwater? 
-            # to shore --> yes
-            summary(lm(sp_richness ~ Shore_Dist, data = fishsummary))
-            # to crest --> yes
-            summary(lm(sp_richness ~ Crest_Dist, data = fishsummary))
-            # to freshwater output --> yes
-            summary(lm(sp_richness ~ Fresh_Dist, data = fishsummary))
+                # to shore --> yes
+                summary(lm(sp_richness ~ Shore_Dist, data = fishsummary))
+                # to crest --> yes
+                summary(lm(sp_richness ~ Crest_Dist, data = fishsummary))
+                # to freshwater output --> yes
+                summary(lm(sp_richness ~ Fresh_Dist, data = fishsummary))
+            # multiple linear regression
+            summary(lm(sp_richness ~ Shore_Dist + Fresh_Dist + Crest_Dist, data = fishsummary))
         
+            
         # difference in richness by substrate characterization? -> yes
         fishsummary %>%
             anova_test(sp_richness ~ Substrate_Characterization)
@@ -146,6 +152,8 @@
         fishdata %>%
             group_by(Unit, Transect) %>%
             summarise(total_fish = length(Transect)) %>%
+            ungroup() %>%
+            add_row(Unit = "Asan", Transect = 19, total_fish = 0) %>%
             mutate(fish_density = total_fish/50, 
                    unit_transect = paste(Unit, "_", Transect))
         
@@ -155,9 +163,9 @@
     # prune
     fishsummary = 
         fishsummary %>%
-            select(c(Unit, Transect, unit_transect, Shore_Dist, Crest_Dist, Fresh_Dist,
+            dplyr::select(c(Unit, Transect, unit_transect, Shore_Dist, Crest_Dist, Fresh_Dist,
                      Substrate_Characterization, Dominant_Benthic_Habitat_Type, 
-                     p_richness, fish_density))
+                     sp_richness, fish_density))
         
     # ANALYSIS
         
@@ -194,7 +202,7 @@
                 effectsize(t.test(transform_fish_density ~ Unit, data = fishsummary %>% mutate(transform_fish_density = fish_density^(1/3))))
         
     
-        # difference in density by substrate characterization (overall)? -> yes
+        # difference in density by substrate characterization (overall)? -> no
         fishsummary %>% anova_test(fish_density ~ Substrate_Characterization)
         
                 # check assumptions
@@ -271,12 +279,14 @@
             #     filter(!p.adj > 0.05)
             # 
         # difference in density by distance from shore/crest/freshwater? 
-            # to shore
-            summary(lm(fish_density ~ Shore_Dist, data = fishsummary))
-            # to crest
-            summary(lm(fish_density ~ Crest_Dist, data = fishsummary))
-            # to freshwater output
-            summary(lm(fish_density ~ Fresh_Dist, data = fishsummary))              
+                # to shore
+                summary(lm(fish_density ~ Shore_Dist, data = fishsummary))
+                # to crest
+                summary(lm(fish_density ~ Crest_Dist, data = fishsummary))
+                # to freshwater output
+                summary(lm(fish_density ~ Fresh_Dist, data = fishsummary)) 
+            # multiple linear regression
+            summary(lm(fish_density ~ Shore_Dist + Fresh_Dist + Crest_Dist, data = fishsummary))
         
     
 ## 4. NMDS (species level) ----
@@ -375,6 +385,7 @@
         mod = betadisper(dis, reference_fishNMDS$Unit)
         anova(mod)      # p<0.05, violated ... but proceeding anyways
         plot(mod)
+
     
     adonis2(vegan_fishNMDS_data[,5:ncol(vegan_fishNMDS_data)] ~ Unit, 
             data = reference_fishNMDS, 
@@ -459,7 +470,7 @@
                                             mean_weight = mean(weight), 
                                             se_weight = std.error(weight)) %>%
                            dplyr::select(c(Unit, Family, Taxon_Name, Species_Code, mean_weight, se_weight)) %>%
-                           pivot_wider(names_from = Unit, values_from = c(mean_weight,se_weight)),
+                           pivot_wider(names_from = Unit, values_from = c(mean_weight,se_weight))
                        # path = "average fish weight by species and unit4")
         
             fish_biomass %>%
@@ -523,6 +534,10 @@
                 fish_biomass %>% kruskal_test(weight ~ Substrate_Characterization)
                 fish_biomass %>% kruskal_effsize(weight ~ Substrate_Characterization)
                 
+                # post-hoc test
+                fish_biomass %>% dunn_test(weight ~ Substrate_Characterization) %>%
+                    filter(p.adj <= 0.05)
+                
                     # # Agat 
                     # fish_biomass %>%
                     #     filter(Unit == "Agat") %>%
@@ -569,31 +584,39 @@
            
             # by benthic habitat
                 
+                    # # overall 
+                    # fish_biomass %>%
+                    #     anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                    # 
+                    # fish_biomass %>%
+                    #     tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                
                 # overall 
-                fish_biomass %>%
-                    anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                fish_biomass %>% kruskal_test(weight ~ Dominant_Benthic_Habitat_Type)
+                fish_biomass %>% kruskal_effsize(weight ~ Dominant_Benthic_Habitat_Type)
                 
-                fish_biomass %>%
-                    tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                # post-hoc test
+                fish_biomass %>% dunn_test(weight ~ Dominant_Benthic_Habitat_Type) %>%
+                    filter(p.adj <= 0.05)
                 
                 
-                    # Agat 
-                    fish_biomass %>%
-                        filter(Unit == "Agat") %>%
-                        anova_test(weight ~ Dominant_Benthic_Habitat_Type)
-                    
-                    fish_biomass %>%
-                        filter(Unit == "Agat") %>%
-                        tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
-                    
-                    # Asan
-                    fish_biomass %>%
-                        filter(Unit == "Asan") %>%
-                        anova_test(weight ~ Dominant_Benthic_Habitat_Type)
-                    
-                    fish_biomass %>%
-                        filter(Unit == "Asan") %>%
-                        tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                    # # Agat 
+                    # fish_biomass %>%
+                    #     filter(Unit == "Agat") %>%
+                    #     anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                    # 
+                    # fish_biomass %>%
+                    #     filter(Unit == "Agat") %>%
+                    #     tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
+                    # 
+                    # # Asan
+                    # fish_biomass %>%
+                    #     filter(Unit == "Asan") %>%
+                    #     anova_test(weight ~ Dominant_Benthic_Habitat_Type)
+                    # 
+                    # fish_biomass %>%
+                    #     filter(Unit == "Asan") %>%
+                    #     tukey_hsd(weight ~ Dominant_Benthic_Habitat_Type)
                     
                     # between benthic habitats, species specific (i.e., which species weighed diff across benthic habitat types)
                     fish_biomass_benthic_models = 
@@ -619,7 +642,7 @@
                         unnest(coefs) %>%
                         dplyr::filter(adj.p.value <= 0.05) %>%
                         dplyr::select(c(Species_Code, contrast, adj.p.value))
-                    
+                
                 
         # difference in total lengths
             
@@ -630,22 +653,78 @@
             # by species
             fish_biomass %>% anova_test(Total_Length ~ Species_Code)
             
+            # by substrate type 
             
-    # difference in biomass by distance from shore/crest/freshwater? 
-            # to shore --> yes
-            summary(lm(weight ~ Shore_Dist, data = fish_biomass))
-            # to crest --> no
-            summary(lm(weight ~ Crest_Dist, data = fish_biomass))
-            # to freshwater output --> no
-            summary(lm(weight ~ Fresh_Dist, data = fish_biomass))
+                # overall 
+                fish_biomass %>% kruskal_test(Total_Length ~ Substrate_Characterization)
+                fish_biomass %>% kruskal_effsize(Total_Length ~ Substrate_Characterization)
+                
+                # post-hoc test
+                fish_biomass %>% dunn_test(Total_Length ~ Substrate_Characterization) %>%
+                    filter(p.adj <= 0.05)
+                
+            # by benthic habitat type
+                
+                # overall 
+                fish_biomass %>% kruskal_test(Total_Length ~ Dominant_Benthic_Habitat_Type)
+                fish_biomass %>% kruskal_effsize(Total_Length ~ Dominant_Benthic_Habitat_Type)
+                
+                # post-hoc test
+                fish_biomass %>% dunn_test(Total_Length ~ Dominant_Benthic_Habitat_Type) %>%
+                    filter(p.adj <= 0.05)
             
-    # difference in total length by distance from shore/crest/freshwater? 
-            # to shore --> yes
-            summary(lm(Total_Length ~ Shore_Dist, data = fish_biomass))
-            # to crest --> no
-            summary(lm(Total_Length ~ Crest_Dist, data = fish_biomass))
-            # to freshwater output --> no
-            summary(lm(Total_Length ~ Fresh_Dist, data = fish_biomass))
+    # difference in total biomass per transect by distance from shore/crest/freshwater? 
+                # to shore 
+                summary(lm(sum_biomass ~ Shore_Dist, 
+                           data = fish_biomass %>%
+                                       group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                                       summarise(sum_total_length = sum(Total_Length),
+                                                 sum_biomass = sum(weight))))
+                # to crest
+                summary(lm(sum_biomass ~ Crest_Dist, 
+                           data = fish_biomass %>%
+                                       group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                                       summarise(sum_total_length = sum(Total_Length),
+                                                 sum_biomass = sum(weight))))
+                # to freshwater output 
+                summary(lm(sum_biomass ~ Fresh_Dist, 
+                           data = fish_biomass %>%
+                                       group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                                       summarise(sum_total_length = sum(Total_Length),
+                                                 sum_biomass = sum(weight))))
+            # multiple linear regression
+            summary(lm(sum_biomass ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = fish_biomass %>%
+                                   group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                                   summarise(sum_total_length = sum(Total_Length),
+                                             sum_biomass = sum(weight))))     
+            
+            
+    # difference in total length per transect by distance from shore/crest/freshwater? 
+                # to shore 
+                summary(lm(sum_total_length ~ Shore_Dist, 
+                           data = fish_biomass %>%
+                               group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                               summarise(sum_total_length = sum(Total_Length),
+                                         sum_biomass = sum(weight))))
+                # to crest
+                summary(lm(sum_total_length ~ Crest_Dist, 
+                           data = fish_biomass %>%
+                               group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                               summarise(sum_total_length = sum(Total_Length),
+                                         sum_biomass = sum(weight))))
+                # to freshwater output 
+                summary(lm(sum_total_length ~ Fresh_Dist, 
+                           data = fish_biomass %>%
+                               group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                               summarise(sum_total_length = sum(Total_Length),
+                                         sum_biomass = sum(weight))))
+            # multiple linear regression
+            summary(lm(sum_total_length ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = fish_biomass %>%
+                           group_by(Unit, Transect, Crest_Dist, Shore_Dist, Fresh_Dist) %>%
+                           summarise(sum_total_length = sum(Total_Length),
+                                     sum_biomass = sum(weight))))
             
         
 ## 7. Summary items ----
@@ -823,7 +902,368 @@
             method = "bray")                     # difference in community based on BENTHIC HABITAT TYPE
     
      
-        
+## 10. Trophic positions of fish ----
+     
+    # difference in number of fish per trophic group within a site
+    fishdiets %>%
+        group_by(Unit, Functional_Trophic_Group) %>%
+        summarise(n_fish = n()) %>%
+        ungroup() %>%
+        complete(nesting(Unit),
+                 nesting(Functional_Trophic_Group),
+                 fill = list(n_fish = 0))
     
+    # difference in number of fish per trophic group per transect within a site
+    fishdiets %>%
+        group_by(Unit, Transect, Functional_Trophic_Group) %>%
+        summarise(n_fish = n()) %>%
+        ungroup() %>%
+        complete(nesting(Unit, Transect),
+                 nesting(Functional_Trophic_Group),
+                 fill = list(n_fish = 0))
+
+    # summary stats
+    fishdiets %>%
+        group_by(Unit, Transect, Functional_Trophic_Group) %>%
+        summarise(n_fish = n()) %>%
+        ungroup() %>%
+        complete(nesting(Unit, Transect),
+                 nesting(Functional_Trophic_Group),
+                 fill = list(n_fish = 0)) %>%
+        group_by(Unit, Functional_Trophic_Group) %>%
+        summarize(mean_fish = mean(n_fish), 
+                  se_fish = std.error(n_fish))
         
+        # # test parametric assumptions --> NOT MET  
+        #     # extreme outliers? yes.
+        #     fishdiets %>%
+        #         group_by(Unit, Transect, Functional_Trophic_Group) %>%
+        #         summarise(n_fish = n()) %>%
+        #         ungroup() %>%
+        #         complete(nesting(Unit, Transect),
+        #                  nesting(Functional_Trophic_Group),
+        #                  fill = list(n_fish = 0)) %>%
+        #         group_by(Unit) %>%
+        #         identify_outliers(n_fish) %>%
+        #         dplyr::select(c(Unit, Transect, Functional_Trophic_Group, is.outlier, is.extreme)) %>%
+        #         filter(is.extreme == T)
+        #     # normal? no.
+        #     fishdiets %>%
+        #         mutate(Unit = as.factor(Unit),
+        #                Transect = as.factor(Transect),
+        #                Functional_Trophic_Group = as.factor(Functional_Trophic_Group)) %>%
+        #         group_by(Unit, Transect, Functional_Trophic_Group, .drop = F) %>%
+        #         summarise(n_fish = n()) %>%
+        #         ungroup() %>%
+        #         group_by(Unit) %>%
+        #         shapiro_test(n_fish)
+        #     ggqqplot(fishdiets %>%
+        #                  mutate(Unit = as.factor(Unit),
+        #                         Transect = as.factor(Transect),
+        #                         Functional_Trophic_Group = as.factor(Functional_Trophic_Group)) %>%
+        #                  group_by(Unit, Transect, Functional_Trophic_Group, .drop = F) %>%
+        #                  summarise(n_fish = n()) %>%
+        #                  ungroup(),
+        #              x = "n_fish", facet.by = "Unit")
+        #     # equal variances? no.
+        #     fishdiets %>%
+        #         mutate(Unit = as.factor(Unit),
+        #                Transect = as.factor(Transect),
+        #                Functional_Trophic_Group = as.factor(Functional_Trophic_Group)) %>%
+        #         group_by(Unit, Transect, Functional_Trophic_Group, .drop = F) %>%
+        #         summarise(n_fish = n()) %>%
+        #         ungroup() %>%
+        #         group_by(Unit) %>%
+        #         levene_test(n_fish ~ Functional_Trophic_Group)
+            
+        # perform non-parametric test within each unit
+        fishdiets %>%
+            group_by(Unit, Transect, Functional_Trophic_Group) %>%
+            summarise(n_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Unit, Transect),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_fish = 0)) %>%
+            group_by(Unit) %>%
+            nest() %>%
+                mutate(kruskal_test = map(data, 
+                                          ~kruskal.test(n_fish ~ Functional_Trophic_Group, data = .x)),
+                       kruskal_effsize = map(data, 
+                                             ~kruskal_effsize(n_fish ~ Functional_Trophic_Group, data = .x))) %>%
+                mutate(tidy_kruskal = map(kruskal_test, tidy)) %>%
+                # unnest(tidy_kruskal) %>%
+                mutate(dunn_test = map(data, 
+                                       ~dunn_test(n_fish ~ Functional_Trophic_Group, data = .x)))
+        
+    # by unit 
+        
+        # perform non-parametric test for each functional group distributions between units
+        fishdiets %>%
+            group_by(Unit, Transect, Functional_Trophic_Group) %>%
+            summarise(n_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Unit, Transect),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_fish = 0)) %>%
+            group_by(Unit, Transect) %>%
+            mutate(total_fish = sum(n_fish),
+                   prop_fish = n_fish / total_fish) %>%
+            ungroup() %>%
+            group_by(Functional_Trophic_Group) %>%
+            nest() %>%
+            mutate(wilcox_test = map(data, 
+                                      ~wilcox_test(prop_fish ~ Unit, data = .x)),
+                   wilcox_effsize = map(data, 
+                                         ~wilcox_effsize(prop_fish ~ Unit, data = .x)))
+        
+    # by substrate
+        
+        # piscivores   
+        piscivore_substrate = 
+            fishdiets %>%
+                group_by(Functional_Trophic_Group, Substrate_Characterization) %>%
+                summarise(n_group_fish = n()) %>%
+                ungroup() %>%
+                complete(nesting(Substrate_Characterization),
+                         nesting(Functional_Trophic_Group),
+                         fill = list(n_group_fish = 0)) %>%
+                group_by(Substrate_Characterization) %>%
+                mutate(total_fish = sum(n_group_fish),
+                       n_nongroup_fish = total_fish - n_group_fish,
+                       prop_group_fish = n_group_fish / total_fish) %>%
+                ungroup() %>%
+                filter(Functional_Trophic_Group == "piscivore") %>%
+                dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(piscivore_substrate), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(piscivore_substrate), simulate.p.value = T)
+    
+        # secondary consumers
+        secondary_substrate = 
+            fishdiets %>%
+                group_by(Functional_Trophic_Group, Substrate_Characterization) %>%
+                summarise(n_group_fish = n()) %>%
+                ungroup() %>%
+                complete(nesting(Substrate_Characterization),
+                         nesting(Functional_Trophic_Group),
+                         fill = list(n_group_fish = 0)) %>%
+                group_by(Substrate_Characterization) %>%
+                mutate(total_fish = sum(n_group_fish),
+                       n_nongroup_fish = total_fish - n_group_fish,
+                       prop_group_fish = n_group_fish / total_fish) %>%
+                ungroup() %>%
+                filter(Functional_Trophic_Group == "secondary_consumer") %>%
+                dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(secondary_substrate), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(secondary_substrate), simulate.p.value = T)
+        
+        # planktivores
+        planktivore_substrate = 
+            fishdiets %>%
+            group_by(Functional_Trophic_Group, Substrate_Characterization) %>%
+            summarise(n_group_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Substrate_Characterization),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_group_fish = 0)) %>%
+            group_by(Substrate_Characterization) %>%
+            mutate(total_fish = sum(n_group_fish),
+                   n_nongroup_fish = total_fish - n_group_fish,
+                   prop_group_fish = n_group_fish / total_fish) %>%
+            ungroup() %>%
+            filter(Functional_Trophic_Group == "planktivore") %>%
+            dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(planktivore_substrate), simulate.p.value = T)
+        view = pairwise_fisher_test(as.data.table(planktivore_substrate), simulate.p.value = T)
+        
+        # primary consumers
+        primary_substrate = 
+            fishdiets %>%
+            group_by(Functional_Trophic_Group, Substrate_Characterization) %>%
+            summarise(n_group_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Substrate_Characterization),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_group_fish = 0)) %>%
+            group_by(Substrate_Characterization) %>%
+            mutate(total_fish = sum(n_group_fish),
+                   n_nongroup_fish = total_fish - n_group_fish,
+                   prop_group_fish = n_group_fish / total_fish) %>%
+            ungroup() %>%
+            filter(Functional_Trophic_Group == "primary_consumer") %>%
+            dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(primary_substrate), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(primary_substrate), simulate.p.value = T)
+        
+        
+   # by dominant benthic habitat type
+        
+        # piscivores   
+        piscivore_benthic = 
+            fishdiets %>%
+            group_by(Functional_Trophic_Group, Dominant_Benthic_Habitat_Type) %>%
+            summarise(n_group_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Dominant_Benthic_Habitat_Type),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_group_fish = 0)) %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            mutate(total_fish = sum(n_group_fish),
+                   n_nongroup_fish = total_fish - n_group_fish,
+                   prop_group_fish = n_group_fish / total_fish) %>%
+            ungroup() %>%
+            filter(Functional_Trophic_Group == "piscivore") %>%
+            dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(piscivore_benthic), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(piscivore_benthic), simulate.p.value = T)
+        
+        # secondary consumers
+        secondary_benthic = 
+            fishdiets %>%
+            group_by(Functional_Trophic_Group, Dominant_Benthic_Habitat_Type) %>%
+            summarise(n_group_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Dominant_Benthic_Habitat_Type),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_group_fish = 0)) %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            mutate(total_fish = sum(n_group_fish),
+                   n_nongroup_fish = total_fish - n_group_fish,
+                   prop_group_fish = n_group_fish / total_fish) %>%
+            ungroup() %>%
+            filter(Functional_Trophic_Group == "secondary_consumer") %>%
+            dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(secondary_benthic), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(secondary_benthic), simulate.p.value = T)
+        
+        # planktivores
+        planktivore_benthic = 
+            fishdiets %>%
+            group_by(Functional_Trophic_Group, Dominant_Benthic_Habitat_Type) %>%
+            summarise(n_group_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Dominant_Benthic_Habitat_Type),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_group_fish = 0)) %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            mutate(total_fish = sum(n_group_fish),
+                   n_nongroup_fish = total_fish - n_group_fish,
+                   prop_group_fish = n_group_fish / total_fish) %>%
+            ungroup() %>%
+            filter(Functional_Trophic_Group == "planktivore") %>%
+            dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(planktivore_benthic), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(planktivore_benthic), simulate.p.value = T)
+        
+        # primary consumers
+        primary_benthic = 
+            fishdiets %>%
+            group_by(Functional_Trophic_Group, Dominant_Benthic_Habitat_Type) %>%
+            summarise(n_group_fish = n()) %>%
+            ungroup() %>%
+            complete(nesting(Dominant_Benthic_Habitat_Type),
+                     nesting(Functional_Trophic_Group),
+                     fill = list(n_group_fish = 0)) %>%
+            group_by(Dominant_Benthic_Habitat_Type) %>%
+            mutate(total_fish = sum(n_group_fish),
+                   n_nongroup_fish = total_fish - n_group_fish,
+                   prop_group_fish = n_group_fish / total_fish) %>%
+            ungroup() %>%
+            filter(Functional_Trophic_Group == "primary_consumer") %>%
+            dplyr::select(c(n_group_fish, n_nongroup_fish))
+        
+        fisher.test(as.data.table(primary_benthic), simulate.p.value = T)
+        pairwise_fisher_test(as.data.table(primary_benthic), simulate.p.value = T)
+        
+    # by distance from crest/shore/freshwater
+        
+        fish_props = 
+            fishdiets %>%
+                group_by(Unit, Transect, Functional_Trophic_Group) %>%
+                summarise(n_group_fish = n()) %>%
+                ungroup() %>%
+                complete(nesting(Unit, Transect),
+                         nesting(Functional_Trophic_Group),
+                         fill = list(n_fish = 0)) %>%
+                group_by(Unit, Transect) %>%
+                mutate(total_fish = sum(n_group_fish),
+                       prop_group_fish = n_group_fish / total_fish) %>%
+                ungroup() %>%
+                # filter(Functional_Trophic_Group == "piscivore") %>%
+                drop_na(prop_group_fish)
+        
+        fish_props = merge(metadata, fish_props) %>%
+                        dplyr::select(c("Unit", "Transect","Functional_Trophic_Group", "Crest_Dist", "Shore_Dist", "Fresh_Dist",
+                                        "n_group_fish", "prop_group_fish"))
+        
+        
+        # PISCIVORES difference in number of fish & proportion group per transect
+                # to shore 
+                summary(lm(n_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+                summary(lm(prop_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+                # to crest
+                summary(lm(n_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+                summary(lm(prop_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+                # to freshwater output 
+                summary(lm(n_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+                summary(lm(prop_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+            # multiple linear regression
+            summary(lm(n_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+            summary(lm(prop_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = fish_props %>% filter(Functional_Trophic_Group == "piscivore")))
+            
+        # PLANKTIVORES difference in number of fish & proportion group per transect
+                # to shore 
+                summary(lm(n_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+                summary(lm(prop_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+                # to crest
+                summary(lm(n_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+                summary(lm(prop_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+                # to freshwater output 
+                summary(lm(n_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+                summary(lm(prop_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+            # multiple linear regression
+            summary(lm(n_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+            summary(lm(prop_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = fish_props %>% filter(Functional_Trophic_Group == "planktivore")))
+        
+        # SECONDARY CONSUMER difference in number of fish & proportion group per transect
+                    # to shore 
+                    summary(lm(n_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                    summary(lm(prop_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                    # to crest
+                    summary(lm(n_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                    summary(lm(prop_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                    # to freshwater output 
+                    summary(lm(n_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                    summary(lm(prop_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                # multiple linear regression
+                summary(lm(n_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                           data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                summary(lm(prop_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                           data = fish_props %>% filter(Functional_Trophic_Group == "secondary_consumer")))
+                
+        # PRIMARY CONSUMER difference in number of fish & proportion group per transect
+                    # to shore 
+                    summary(lm(n_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                    summary(lm(prop_group_fish ~ Shore_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                    # to crest
+                    summary(lm(n_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                    summary(lm(prop_group_fish ~ Crest_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                    # to freshwater output 
+                    summary(lm(n_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                    summary(lm(prop_group_fish ~ Fresh_Dist, data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                # multiple linear regression
+                summary(lm(n_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                           data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))
+                summary(lm(prop_group_fish ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                           data = fish_props %>% filter(Functional_Trophic_Group == "primary_consumer")))          
         
