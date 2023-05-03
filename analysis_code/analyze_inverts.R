@@ -73,6 +73,52 @@
                    prop_star_community = n_stars_found / total_stars, 
                    percent_star_community = prop_star_community * 100) 
         
+    # sea urchins
+        # number of species
+        invert_data %>%
+            filter(Group == "Sea Urchins") %>%
+            summarise(n_urchin_sp = length(unique(Code)))
+        # species present
+        invert_data %>%
+            filter(Group == "Sea Urchins") %>%
+            distinct(Species)
+        # which species were most common?
+        invert_data %>%
+            filter(Group == "Sea Urchins") %>%
+            group_by(Species) %>%
+            summarise(n_urchin_found = n())
+        # how many transects had urchins?
+        invert_data %>%
+            filter(Group == "Sea Urchins") %>%
+            group_by(Unit, Transect) %>%
+            summarise(sum_urchins = n()) %>%
+            ungroup() %>%
+            group_by(Unit) %>%
+            summarise(sum_transects_with_urchins = n())
+        # total number of urchins, prop of community that each urchin sp occupies
+        invert_data %>%
+            filter(Group == "Sea Urchins") %>%
+            group_by(Species) %>%
+            summarise(n_urchins_found = n()) %>%
+            mutate(total_urchins = sum(n_urchins_found), 
+                   prop_urchin_community = n_urchins_found / total_urchins, 
+                   percent_urchin_community = prop_urchin_community * 100)
+        
+    # tridacna
+        # how many transects had clams?
+        invert_data %>%
+            filter(Group == "Clams") %>%
+            group_by(Unit, Transect) %>%
+            summarise(sum_clams = n()) %>%
+            ungroup() %>%
+            group_by(Unit) %>%
+            summarise(sum_transects_with_clams = n())
+        # total number of clams?
+        invert_data %>%
+            filter(Group == "Clams") %>%
+            group_by(Species) %>%
+            summarise(n_clams_found = n())
+        
         
         
 ## 3. Species richness ----
@@ -252,8 +298,7 @@
                                                                                        summarise(sp_richness = length(unique(Species))) %>%
                                                                                        ungroup()))
             
-    # sea urchins
-    
+    # sea urchins --> not applicable bc only four species so not very informative
             
     # sea stars --> not applicable bc only two species so not very informative
                 
@@ -438,7 +483,152 @@
                                                                                            ungroup()))
                 
     # sea urchins
-      
+    invert_data %>%
+        filter(Group == "Sea Urchins") %>%
+        group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+        summarise(urchin_count = n(),
+                  urchin_density = n() / 50) %>%
+        ungroup() 
+            
+        # difference by unit?
+            # check parametric assumptions --> not met
+                # extreme outliers? one. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>%
+                    ungroup() %>%
+                    group_by(Unit) %>%
+                    identify_outliers(urchin_density)
+                # normal? no.
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>%
+                    ungroup() %>%
+                    group_by(Unit) %>%
+                    shapiro_test(urchin_density)
+                ggqqplot(invert_data %>%
+                             filter(Group == "Sea Urchins") %>%
+                             group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                             summarise(urchin_density = n() / 50) %>%
+                             ungroup(), 
+                         x = "urchin_density", facet.by = "Unit")
+                # equal variances? yes. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>% 
+                    ungroup() %>% 
+                    levene_test(urchin_density ~ Unit)
+            
+            # perform non-parametric test
+            invert_data %>%
+                filter(Group == "Sea Urchins") %>%
+                group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                summarise(urchin_density = n() / 50) %>%
+            ungroup() %>%
+            wilcox_test(urchin_density ~ Unit)
+            
+            # determine effect size 
+            invert_data %>%
+                filter(Group == "Sea Urchins") %>%
+                group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                summarise(urchin_density = n() / 50) %>%
+            ungroup() %>%
+            wilcox_effsize(urchin_density ~ Unit)
+            
+        # difference by substrate characterization? --> not enough transects per substrate type to compare
+            # Aggregate Patch Reef (n = 2 transects)
+            # Pavement (n = 1)
+            # Reef Rubble (n = 3)
+            # Sand Scattered Coral (n = 2)
+            # Sand Scattered Rock (n = 2)
+            
+            # sumamary stats 
+            invert_data %>%
+                filter(Group == "Sea Urchins") %>%
+                group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                summarise(urchin_density = n() / 50) %>%
+                ungroup() %>%
+                group_by(Substrate_Characterization) %>%
+                summarise(mean_density = mean(urchin_density), 
+                          std_error_density = std.error(urchin_density))
+            
+        # difference by benthic habitat type?
+            # check parametric assumptions --> not met
+                # extreme outliers? one. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>%
+                    ungroup() %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>%
+                    identify_outliers(urchin_density)
+                # normal? no.
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>%
+                    ungroup() %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>%
+                    shapiro_test(urchin_density)
+                ggqqplot(invert_data %>%
+                             filter(Group == "Sea Urchins") %>%
+                             group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                             summarise(urchin_density = n() / 50) %>%
+                             ungroup(), 
+                         x = "urchin_density", facet.by = "Dominant_Benthic_Habitat_Type")
+                # equal variances? yes. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>%
+                    ungroup() %>% 
+                    levene_test(urchin_density ~ Dominant_Benthic_Habitat_Type)
+                
+            # perform non-parametric test
+            invert_data %>%
+                filter(Group == "Sea Urchins") %>%
+                group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                summarise(urchin_density = n() / 50) %>%
+                ungroup() %>%
+                kruskal_test(urchin_density ~ Dominant_Benthic_Habitat_Type)
+            
+                # determine effect size 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+                    summarise(urchin_density = n() / 50) %>%
+                    ungroup() %>%
+                    kruskal_effsize(urchin_density ~ Dominant_Benthic_Habitat_Type)
+            
+        # difference in density by distance from shore/crest/freshwater? 
+            # to shore --> no
+            summary(lm(urchin_density ~ Shore_Dist, data = invert_data %>%
+                           filter(Group == "Sea Urchins") %>%
+                           group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type, Fresh_Dist, Shore_Dist, Crest_Dist) %>%
+                           summarise(urchin_density = n() / 50) %>%
+                           ungroup()))
+            # to crest --> yes
+            summary(lm(urchin_density ~ Crest_Dist, data = invert_data %>%
+                           filter(Group == "Sea Urchins") %>%
+                           group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type, Fresh_Dist, Shore_Dist, Crest_Dist) %>%
+                           summarise(urchin_density = n() / 50) %>%
+                           ungroup()))
+            # to freshwater output --> no
+            summary(lm(urchin_density ~ Fresh_Dist, data = invert_data %>%
+                           filter(Group == "Sea Urchins") %>%
+                           group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type, Fresh_Dist, Shore_Dist, Crest_Dist) %>%
+                           summarise(urchin_density = n() / 50) %>%
+                           ungroup()))
+            # multiple linear regression
+            summary(lm(urchin_density ~ Shore_Dist + Fresh_Dist + Crest_Dist, data = invert_data %>%
+                           filter(Group == "Sea Urchins") %>%
+                           group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type, Fresh_Dist, Shore_Dist, Crest_Dist) %>%
+                           summarise(urchin_density = n() / 50) %>%
+                           ungroup()))
+            
                   
     # sea stars
     invert_data %>%
@@ -618,10 +808,9 @@
                                                                                                ungroup()))
                                
                 
-
 ## 5. Size ----
                 
-    # sea cucumbers
+    ## sea cucumbers
     invert_data %>%
         filter(Group == "Sea Cucumbers") %>%
         mutate(Taxon_Name = Species) %>%
@@ -671,7 +860,7 @@
                     filter(Group == "Sea Cucumbers") %>%
                     wilcox_effsize(Size ~ Unit)
             
-        # by substrate type?
+        ## by substrate type?
             # check parametric assumptions --> not met.
                 # extreme outliers? 26.
                 invert_data %>%
@@ -757,19 +946,133 @@
                        data = invert_data %>% filter(Group == "Sea Cucumbers")))
                 
 
-    # sea urchins
+    ## sea urchins
+    invert_data %>%
+        filter(Group == "Sea Urchins") %>%
+        mutate(Taxon_Name = Species) %>%
+        group_by(Taxon_Name) %>%
+        summarise(mean_radius = mean(Size), 
+                  se_radius = std.error(Size))
     
-        # by unit?
-    
-          
-              
-    # sea stars
+        # difference by unit?
+            # check parametric assumptions --> not met.
+                # extreme outliers? three.
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit) %>%
+                    identify_outliers(Size) %>%
+                    filter(is.extreme == T)
+                # normal? no. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Unit) %>%
+                    shapiro_test(Size)
+                ggqqplot(invert_data %>% 
+                             filter(Group == "Sea Urchins"),
+                         x = "Size", facet.by = "Unit")
+                # equal variances? yes. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    levene_test(Size ~ Unit)
+            
+            # perform non-parametric test
             invert_data %>%
-                filter(Group == "Sea Stars") %>%
-                mutate(Taxon_Name = Species) %>%
-                group_by(Taxon_Name) %>%
-                summarise(mean_radius = mean(Size), 
-                          se_radius = std.error(Size))
+                filter(Group == "Sea Urchins") %>%
+                wilcox_test(Size ~ Unit)
+            
+                # determine effect size 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    wilcox_effsize(Size ~ Unit)
+        
+        # by substrate type?
+            # check parametric assumptions --> not met.
+                # extreme outliers? one
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Substrate_Characterization) %>%
+                    identify_outliers(Size) %>%
+                    filter(is.extreme == T)
+                # normal? no.  
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Substrate_Characterization) %>%
+                    shapiro_test(Size)
+                ggqqplot(invert_data %>% 
+                             filter(Group == "Sea Urchins"),
+                         x = "Size", facet.by = "Substrate_Characterization")
+                # equal variances? no. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    levene_test(Size ~ Substrate_Characterization)
+        
+            # perform non-parametric test
+            invert_data %>%
+                filter(Group == "Sea Urchins") %>%
+                kruskal_test(Size ~ Substrate_Characterization)
+            
+                # find effect size
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    kruskal_effsize(Size ~ Substrate_Characterization)
+            
+                # perform post-hoc test
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    dunn_test(Size ~ Substrate_Characterization) %>%
+                    filter(p.adj <= 0.05)
+        
+        # by benthic habitat type?
+            # check parametric assumptions --> met.
+                # extreme outliers? no.
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>%
+                    identify_outliers(Size) %>%
+                    filter(is.extreme == T)
+                # normal? yes. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    filter(!Dominant_Benthic_Habitat_Type == "Coral") %>%
+                    group_by(Dominant_Benthic_Habitat_Type) %>%
+                    shapiro_test(Size)
+                ggqqplot(invert_data %>% 
+                             filter(Group == "Sea Urchins"), 
+                         x = "Size", facet.by = "Dominant_Benthic_Habitat_Type")
+                # equal variances? yes. 
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    levene_test(Size ~ Dominant_Benthic_Habitat_Type)
+        
+            # perform non-parametric test (assumptions of parametric met but i dont want to remove a habitat type group)
+            invert_data %>%
+                filter(Group == "Sea Urchins") %>%
+                kruskal_test(Size ~ Dominant_Benthic_Habitat_Type)
+            
+                # calculate effect size
+                invert_data %>%
+                    filter(Group == "Sea Urchins") %>%
+                    kruskal_effsize(Size ~ Dominant_Benthic_Habitat_Type)
+        
+        # difference in size by distance from shore/crest/freshwater? 
+            # to shore --> no
+            summary(lm(Size ~ Shore_Dist, data = invert_data %>% filter(Group == "Sea Urchins")))
+            # to crest --> no
+            summary(lm(Size ~ Crest_Dist, data = invert_data %>% filter(Group == "Sea Urchins")))
+            # to freshwater output --> yes
+            summary(lm(Size ~ Fresh_Dist, data = invert_data %>% filter(Group == "Sea Urchins")))
+            # multiple linear regression
+            summary(lm(Size ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                       data = invert_data %>% filter(Group == "Sea Urchins")))
+    
+        
+    ## sea stars
+    invert_data %>%
+        filter(Group == "Sea Stars") %>%
+        mutate(Taxon_Name = Species) %>%
+        group_by(Taxon_Name) %>%
+        summarise(mean_radius = mean(Size), 
+                  se_radius = std.error(Size))
             
         # difference by unit?
             # check parametric assumptions --> not met.
@@ -879,7 +1182,26 @@
                        data = invert_data %>% filter(Group == "Sea Stars")))
     
     
+   ## Tridacna 
+    invert_data %>%
+        filter(Group == "Clams") %>%
+        mutate(Taxon_Name = Species) %>%
+        group_by(Taxon_Name) %>%
+        summarise(mean_length = mean(Size), 
+                  se_length = std.error(Size)) 
+    
+    # difference in size by distance from shore/crest/freshwater? 
+        # to shore --> no
+        summary(lm(Size ~ Shore_Dist, data = invert_data %>% filter(Group == "Clams")))
+        # to crest --> no
+        summary(lm(Size ~ Crest_Dist, data = invert_data %>% filter(Group == "Clams")))
+        # to freshwater output --> yes
+        summary(lm(Size ~ Fresh_Dist, data = invert_data %>% filter(Group == "Clams")))
+        # multiple linear regression
+        summary(lm(Size ~ Shore_Dist + Fresh_Dist + Crest_Dist, 
+                   data = invert_data %>% filter(Group == "Clams")))
+    
     
             
-    
-        
+            
+ 

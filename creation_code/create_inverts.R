@@ -35,6 +35,5 @@
         dplyr::select(!c(Year, Date, Depth, Time, Bearing, 
                          Invert_Surveyor, Fish_Surveyor, Coral_Algae_Surveyor, 
                          Weather, Notes))
+
     
-    
-  

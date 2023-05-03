@@ -30,8 +30,7 @@
             labs(x="WAPA Management Unit", y="Mean Holothurian Richness") +
             theme_pubr(legend = "none")
     
-    # sea urchins
-    
+    # sea urchins --> not applicable bc only four species so not very informative
     
     # sea stars --> not applicable bc only two species so not very informative
     
@@ -82,14 +81,19 @@
     
     
     # sea urchins
-    
-    
-    # sea stars
+    invert_data %>%
+        filter(Group == "Sea Urchins") %>%
+        group_by(Unit, Transect, Group, Substrate_Characterization, Dominant_Benthic_Habitat_Type) %>%
+        summarise(urchin_density = n() / 50) %>%
+        ungroup() %>%
+        group_by(Substrate_Characterization) %>%
+        summarise(mean_density = mean(urchin_density), 
+                  std_error_density = std.error(urchin_density))
     
 
 ## 4. Size ----
     
-    # sea cucumbers
+    ## sea cucumbers
     invert_data %>%
         filter(Group == "Sea Cucumbers") %>%
         ggplot(aes(x = Size, fill = Species)) +
@@ -208,10 +212,58 @@
             scale_x_continuous(limits = c(0, 1250)) +
             theme_pubr()
 
-    # sea urchins
+    ## sea urchins
+    invert_data %>%
+        filter(Group == "Sea Urchins") %>%
+        group_by(Substrate_Characterization) %>%
+        summarise(mean_radius = mean(Size), 
+                  se_radius = std.error(Size)) %>%
+        mutate(Substrate_Characterization = recode(Substrate_Characterization, 
+                                                   AggregatePatchReef = "Aggregate Patch \n Reef",
+                                                   AggregateReef = "Aggregate Reef",
+                                                   ReefRubble = "Reef Rubble",
+                                                   RockBoulder = "Rock Boulder",
+                                                   SandScatteredCoral = "Sand Scattered \n Coral",
+                                                   SandScatteredRock = "Sand Scattered \n Rock" )) %>%
+        ggplot(aes(x = reorder(Substrate_Characterization, mean_radius), y = mean_radius, 
+                   fill = Substrate_Characterization)) +
+            geom_col() +
+            scale_fill_flat_d() +
+            geom_errorbar(aes(ymin = mean_radius-se_radius, 
+                              ymax = mean_radius+se_radius, width = 0.5)) +
+            geom_signif(comparisons=list(c("Aggregate Patch \n Reef", "Reef Rubble")), annotations="***",
+                        y_position = 8, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Sand Scattered \n Coral", "Reef Rubble")), annotations="***",
+                        y_position = 9, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Sand Scattered \n Rock", "Reef Rubble")), annotations="*",
+                        y_position = 11, tip_length = 0.02, vjust=0.4) +
+            geom_signif(comparisons=list(c("Pavement", "Reef Rubble")), annotations="*",
+                        y_position = 10, tip_length = 0.02, vjust=0.4) +
+            labs(x="Substrate Characterization", y="Mean Echinoidean Radial Length (cm)") +
+            theme_pubr(legend = "none")
+    
+    invert_data %>%
+        filter(Group == "Sea Urchins") %>%
+        pivot_longer(cols = c(Shore_Dist, Crest_Dist, Fresh_Dist), 
+                     names_to = "Type", 
+                     values_to = "Distance") %>%
+        dplyr::mutate(Type = recode(Type, 
+                                    Fresh_Dist = "Freshwater Source", 
+                                    Shore_Dist = "Shore", 
+                                    Crest_Dist = "Reef Crest")) %>%
+        ggplot(aes(x = Distance, y = Size, color = Type, fill = Type)) +
+        geom_point(alpha = 0.4) +
+        geom_smooth(data = . %>% filter(!Type %in% c("Shore")),
+                    method = "lm") +
+        scale_color_manual(values = c("pink",  "orange", "blue")) +
+        scale_fill_manual(values = c("pink", "orange", "blue")) +
+        labs(x = "Distance (m)", y = "Echinoidean Radial Length (cm)", 
+             color = "Distance from:", fill = "Distance from:") +
+        scale_x_continuous(limits = c(0, 1250)) +
+        theme_pubr()
     
     
-    # sea stars
+    ## sea stars
     invert_data %>%
         filter(Group == "Sea Stars") %>%
         group_by(Substrate_Characterization) %>%
